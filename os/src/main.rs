@@ -9,6 +9,8 @@ mod sbi;
 mod lang_items;
 mod logging;
 mod mmio;
+mod trap;
+mod syscall;
 
 global_asm!(include_str!("entry.asm"));
 

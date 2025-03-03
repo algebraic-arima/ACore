@@ -1,12 +1,12 @@
 .vscode
 bootloader
-os/target
+*/target
 
 os/src/link_app.S
 os/src/linker.ld
 os/last-*
-os/Cargo.lock
-os/.gdb_history
+*/Cargo.lock
+*/.gdb_history
 
 notes.txt
 

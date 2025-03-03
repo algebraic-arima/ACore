@@ -204,6 +204,7 @@ pub fn switch_s(s_mode_entry: usize, hartid: usize) {
     unsafe {
         mstatus::set_mpp(riscv::register::mstatus::MPP::Supervisor);
         mepc::write(s_mode_entry as usize);
+        // may call os::trap::context::os_init_context here and get a ctx
 
         satp::write(0);
 
