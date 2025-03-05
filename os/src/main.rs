@@ -2,7 +2,6 @@
 #![no_main]
 
 use core::arch::global_asm;
-use mmio::{shutdown, switch_s};
 
 #[macro_use]
 mod sbi;
@@ -11,8 +10,10 @@ mod logging;
 mod mmio;
 mod trap;
 mod syscall;
+mod init;
 
 global_asm!(include_str!("entry.asm"));
+global_asm!(include_str!("link_kernel.S"));
 
 /// clear BSS segment
 pub fn clear_bss() {
@@ -29,11 +30,7 @@ pub fn rust_main() -> ! {
     clear_bss();
     sbi::init_uart();
     logging::init();
-    println!("[kernel] Hello QEMU");
-    let c = sbi::scan();
-    if c == 'Q' as u8 {
-        shutdown(false);
-    }
-    switch_s(0x80000000, 0);
-    shutdown(false)
+    println!("[kernel] POWERON");
+    init::switch_s(0x80200000, 0);
+    sbi::shutdown(false)
 }

@@ -8,12 +8,8 @@ pub struct TrapContext {
 }
 
 impl TrapContext {
-    pub fn set_sp(&mut self, sp: usize) {
-        self.x[2] = sp;
-    }
-
     pub fn os_init_context(entry: usize, sp: usize) -> Self {
-        let mstatus = mstatus::read(); // CSR sstatus
+        let mstatus = mstatus::read();
         unsafe {
             mstatus::set_mpp(MPP::Supervisor);
         }

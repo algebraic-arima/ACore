@@ -12,8 +12,6 @@ endif
 
 # BOARD
 BOARD := qemu
-SBI ?= rustsbi
-
 
 # Binutils
 OBJDUMP := rust-objdump --arch-name=riscv64
@@ -38,6 +36,7 @@ $(KERNEL_BIN): kernel
 	@$(OBJCOPY) $(KERNEL_ELF) --strip-all -O binary $@
 
 kernel:
+	@cd ../sup && make build
 	@echo Platform: $(BOARD)
 	@cp src/linker-$(BOARD).ld src/linker.ld
 	@cargo build $(MODE_ARG) || (rm -f src/linker.ld; exit 1)

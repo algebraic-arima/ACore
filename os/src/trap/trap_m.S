@@ -13,7 +13,7 @@
     .globl __restore
     .align 2
 __alltraps:
-    csrrw sp, sscratch, sp
+    csrrw sp, mscratch, sp
     # now sp->kernel stack, sscratch->user stack
     # allocate a TrapContext on kernel stack
     addi sp, sp, -34*8
@@ -29,12 +29,12 @@ __alltraps:
         .set n, n+1
     .endr
     # we can use t0/t1/t2 freely, because they were saved on kernel stack
-    csrr t0, sstatus
-    csrr t1, sepc
+    csrr t0, mstatus
+    csrr t1, mepc
     sd t0, 32*8(sp)
     sd t1, 33*8(sp)
     # read user stack from sscratch and save it on the kernel stack
-    csrr t2, sscratch
+    csrr t2, mscratch
     sd t2, 2*8(sp)
     # set input argument of trap_handler(cx: &mut TrapContext)
     mv a0, sp
@@ -49,9 +49,9 @@ __restore:
     ld t0, 32*8(sp)
     ld t1, 33*8(sp)
     ld t2, 2*8(sp)
-    csrw sstatus, t0
-    csrw sepc, t1
-    csrw sscratch, t2
+    csrw mstatus, t0
+    csrw mepc, t1
+    csrw mscratch, t2
     # restore general-purpuse registers except sp/tp
     ld x1, 1*8(sp)
     ld x3, 3*8(sp)
@@ -63,5 +63,5 @@ __restore:
     # release TrapContext on kernel stack
     addi sp, sp, 34*8
     # now sp->kernel stack, sscratch->user stack
-    csrrw sp, sscratch, sp
+    csrrw sp, mscratch, sp
     sret
