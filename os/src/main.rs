@@ -31,7 +31,7 @@ pub fn rust_main() -> ! {
     clear_bss();
     sbi::init_uart();
     logging::init();
-    println!("[kernel] POWERON");
+    log::warn!("[kernel] POWERON");
     loader::load_kernel();
     init::switch_s(0x80200000, 0);
     sbi::shutdown(false)

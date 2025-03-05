@@ -1,5 +1,7 @@
 use core::arch::asm;
 
+use log::info;
+
 const MACHINE_STACK_SIZE: usize = 4096 * 2;
 const KERNEL_STACK_SIZE: usize = 4096 * 2;
 
@@ -45,7 +47,7 @@ pub fn load_kernel() {
     let kernel_start_ptr = kernel_start as usize as *const usize;
     let kernel_end_ptr = kernel_end as usize as *const usize;
     let kernel_size = kernel_end_ptr as usize - kernel_start_ptr as usize;
-    println!("[kernel] kernel start: {:p}, kernel end: {:p}, kernel size: {:#x}", kernel_start_ptr, kernel_end_ptr, kernel_size);
+    info!("[kernel] kernel asm size: {:#x}", kernel_size);
 
     (KERNEL_BASE_ADDRESS..KERNEL_BASE_ADDRESS + kernel_size)
         .for_each(|addr| unsafe { (addr as *mut u8).write_volatile(0) });
