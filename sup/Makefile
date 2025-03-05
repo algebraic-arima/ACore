@@ -47,8 +47,8 @@ disasm: kernel
 	@$(OBJDUMP) $(DISASM) $(KERNEL_ELF) | less
 
 disasm-vim: kernel
-	@$(OBJDUMP) $(DISASM) $(KERNEL_ELF) > $(DISASM_TMP)
-	@vim $(DISASM_TMP)
-	@rm $(DISASM_TMP)
+	@$(OBJDUMP) $(DISASM) -d $(KERNEL_ELF) > $(DISASM_TMP)
+	# @vim $(DISASM_TMP)
+	# @rm $(DISASM_TMP)
 
 .PHONY: build env kernel clean disasm disasm-vim 

@@ -9,14 +9,14 @@ mod syscall;
 #[unsafe(no_mangle)]
 #[unsafe(link_section = ".text.entry")]
 pub extern "C" fn _start() -> ! {
-    clear_bss();
-    main();
-    console::exit(0);
+    // clear_bss();
+    kernel_main();
+    // console::exit(0);
     panic!("unreachable after sys_exit!");
 }
 
 #[unsafe(no_mangle)]
-fn main() -> () {
+fn kernel_main() -> () {
     println!("[kernel] supervisor mode");
 }
 

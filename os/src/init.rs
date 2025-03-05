@@ -60,7 +60,7 @@ pub fn switch_s(s_mode_entry: usize, hartid: usize) {
         unsafe extern "C" {
             safe fn __alltraps();
         } // all-using trap handler from s to m
-        mtvec::write(__alltraps as usize, riscv::register::mtvec::TrapMode::Direct);
+        stvec::write(__alltraps as usize, riscv::register::stvec::TrapMode::Direct);
 
         mstatus::set_mie();
         mie::set_mtimer();

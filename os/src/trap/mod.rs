@@ -4,9 +4,9 @@ use crate::syscall::syscall;
 use context::TrapContext;
 use core::arch::global_asm;
 use riscv::register::{
-    mcause::{self, Exception, Interrupt, Trap},
-    mtval,
-    mtvec::{self, TrapMode},
+    scause::{self, Exception, Interrupt, Trap},
+    stval,
+    stvec::{self, TrapMode},
 };
 
 global_asm!(include_str!("trap_m.S"));
@@ -16,28 +16,28 @@ pub fn init() {
         safe fn __alltraps();
     }
     unsafe {
-        mtvec::write(__alltraps as usize, TrapMode::Direct);
+        stvec::write(__alltraps as usize, TrapMode::Direct);
         // set mtvec the address of __alltraps to answer the ecall from S-mode
     }
 }
 
 #[unsafe(no_mangle)]
 pub fn trap_handler_m(ctx: &mut TrapContext) {
-    let mcause = mcause::read().cause();
-    let mtval = mtval::read();
-    match mcause {
+    let scause = scause::read().cause();
+    let stval = stval::read();
+    match scause {
         Trap::Exception(Exception::UserEnvCall) => {
-            ctx.mepc += 4;
+            ctx.sepc += 4;
             syscall(ctx.x[17], [ctx.x[10], ctx.x[11], ctx.x[12]]) as usize;
             ctx.x[10] = 0;
         }
-        Trap::Interrupt(Interrupt::MachineTimer) => {
-            ctx.mepc += 4;
-            // todo: handle timer interrupt
-            ctx.x[10] = 0;
-        }
+        // Trap::Interrupt(Interrupt::MachineTimer) => {
+        //     ctx.sepc += 4;
+        //     // todo: handle timer interrupt
+        //     ctx.x[10] = 0;
+        // }
         _ => {
-            panic!("Unhandled exception: {:?}, mtval: {:#x}", mcause, mtval);
+            panic!("Unhandled exception: {:?}, stval: {:#x}", scause, stval);
         }
     }
     unsafe extern "C" {

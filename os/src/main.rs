@@ -11,6 +11,7 @@ mod mmio;
 mod trap;
 mod syscall;
 mod init;
+mod loader;
 
 global_asm!(include_str!("entry.asm"));
 global_asm!(include_str!("link_kernel.S"));
@@ -31,6 +32,7 @@ pub fn rust_main() -> ! {
     sbi::init_uart();
     logging::init();
     println!("[kernel] POWERON");
+    loader::load_kernel();
     init::switch_s(0x80200000, 0);
     sbi::shutdown(false)
 }
