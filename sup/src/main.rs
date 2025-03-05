@@ -5,19 +5,20 @@
 pub mod console;
 mod lang_items;
 mod syscall;
+mod sbi;
+mod mmio;
+mod trap;
 
 #[unsafe(no_mangle)]
 #[unsafe(link_section = ".text.entry")]
 pub extern "C" fn _start() -> ! {
-    // clear_bss();
-    kernel_main();
-    // console::exit(0);
-    panic!("unreachable after sys_exit!");
+    clear_bss();
+    println!("[kernel] supervisor mode");
+    loop{}
 }
 
 #[unsafe(no_mangle)]
 fn kernel_main() -> () {
-    println!("[kernel] supervisor mode");
 }
 
 fn clear_bss() {

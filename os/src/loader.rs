@@ -44,7 +44,8 @@ pub fn load_kernel() {
 
     let kernel_start_ptr = kernel_start as usize as *const usize;
     let kernel_end_ptr = kernel_end as usize as *const usize;
-    let kernel_size = unsafe { kernel_end_ptr.offset_from(kernel_start_ptr) as usize };
+    let kernel_size = kernel_end_ptr as usize - kernel_start_ptr as usize;
+    println!("[kernel] kernel start: {:p}, kernel end: {:p}, kernel size: {:#x}", kernel_start_ptr, kernel_end_ptr, kernel_size);
 
     (KERNEL_BASE_ADDRESS..KERNEL_BASE_ADDRESS + kernel_size)
         .for_each(|addr| unsafe { (addr as *mut u8).write_volatile(0) });
@@ -60,6 +61,4 @@ pub fn load_kernel() {
     unsafe {
         asm!("fence.i");
     }
-    println!("[kernel] kernel start: {:p}, kernel end: {:p}, kernel size: {:#x}", kernel_start_ptr, kernel_end_ptr, kernel_size);
-    println!("[kernel] kernel loaded to {:#x}", KERNEL_BASE_ADDRESS);
 }

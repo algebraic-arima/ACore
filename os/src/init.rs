@@ -58,9 +58,9 @@ pub fn switch_s(s_mode_entry: usize, hartid: usize) {
         mtimecmp_addr.write_volatile(mtime + TIME_INTERVAL);
 
         unsafe extern "C" {
-            safe fn __alltraps();
+            safe fn __alltraps_m();
         } // all-using trap handler from s to m
-        stvec::write(__alltraps as usize, riscv::register::stvec::TrapMode::Direct);
+        mtvec::write(__alltraps_m as usize, riscv::register::mtvec::TrapMode::Direct);
 
         mstatus::set_mie();
         mie::set_mtimer();
