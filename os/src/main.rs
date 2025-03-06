@@ -7,9 +7,8 @@ use core::arch::global_asm;
 mod sbi;
 mod lang_items;
 mod logging;
-mod mmio;
+mod uart;
 mod trap;
-mod syscall;
 mod init;
 mod loader;
 
@@ -31,7 +30,7 @@ pub fn rust_main() -> ! {
     clear_bss();
     sbi::init_uart();
     logging::init();
-    log::warn!("[kernel] POWERON");
+    log::info!("[kernel] POWERON");
     loader::load_kernel();
     init::switch_s(0x80200000, 0);
     sbi::shutdown(false)

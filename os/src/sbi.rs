@@ -1,6 +1,6 @@
 use log::{error, warn, info};
 
-use crate::mmio::MmioSerialPort;
+use crate::uart::MmioSerialPort;
 use core::sync::atomic::{AtomicPtr, Ordering};
 use core::fmt::{self, Write};
 
@@ -20,7 +20,7 @@ impl fmt::Write for MmioSerialPort {
 
 pub fn init_uart() {
     unsafe {
-        MSP = Some(MmioSerialPort::new());
+        MSP = Some(MmioSerialPort::new(VIRT_UART0_BASE));
         if let Some(ref mut uart) = MSP {
             uart.init();
         }

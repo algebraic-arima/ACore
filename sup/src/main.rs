@@ -2,15 +2,16 @@
 #![feature(linkage)]
 #![no_main]
 
-use log::warn;
+use log::info;
+use riscv::register::time;
 
 #[macro_use]
 mod lang_items;
-mod syscall;
-mod sbi;
-mod mmio;
-mod trap;
 mod logging;
+mod mmio;
+mod sbi;
+mod syscall;
+mod trap;
 
 #[unsafe(no_mangle)]
 #[unsafe(link_section = ".text.entry")]
@@ -18,8 +19,14 @@ pub extern "C" fn _start() -> ! {
     clear_bss();
     logging::init();
     sbi::init_uart();
-    warn!("[kernel] Switched to Supervisor Mode");
+    println!("time:{}", get_time());
+    info!("[kernel] Switched to Supervisor Mode");
+    println!("time:{}", get_time());
     sbi::shutdown(false)
+}
+
+pub fn get_time() -> usize {
+    time::read()
 }
 
 fn clear_bss() {

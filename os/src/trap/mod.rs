@@ -1,12 +1,13 @@
 mod context;
 
-use crate::syscall::syscall;
 use context::TrapContext;
 use core::arch::global_asm;
+use log::info;
 use riscv::register::{
     mcause::{self, Exception, Interrupt, Trap},
     mtval,
     mtvec::{self, TrapMode},
+    time,
 };
 
 global_asm!(include_str!("trap_m.S"));
@@ -25,12 +26,8 @@ pub fn init() {
 pub fn trap_handler_m(ctx: &mut TrapContext) {
     let mcause = mcause::read().cause();
     let mtval = mtval::read();
+    info!("trap_handler_m: mcause: {:?}, mtval: {:#x}", mcause, mtval);
     match mcause {
-        Trap::Exception(Exception::UserEnvCall) => {
-            ctx.mepc += 4;
-            syscall(ctx.x[17], [ctx.x[10], ctx.x[11], ctx.x[12]]) as usize;
-            ctx.x[10] = 0;
-        }
         Trap::Interrupt(Interrupt::MachineTimer) => {
             ctx.mepc += 4;
             // todo: handle timer interrupt

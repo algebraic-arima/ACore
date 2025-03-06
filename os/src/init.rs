@@ -3,7 +3,7 @@ use riscv::register::*;
 
 const MTIME: *const u64 = 0x0200bff8 as *const u64;
 const MTIMECMP: *mut u64 = 0x02004000 as *mut u64;
-const TIME_INTERVAL: u64 = 1000000;
+const TIME_INTERVAL: u64 = 10000;
 
 unsafe fn set_medeleg() {
     unsafe {
@@ -54,6 +54,7 @@ pub fn switch_s(s_mode_entry: usize, hartid: usize) {
         pmpcfg0::write(0xf);
 
         let mtime = MTIME.read_volatile();
+        println!("{}", mtime);
         let mtimecmp_addr = (MTIMECMP as usize + 8 * hartid) as *mut u64;
         mtimecmp_addr.write_volatile(mtime + TIME_INTERVAL);
 

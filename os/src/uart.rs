@@ -2,9 +2,6 @@ use core::sync::atomic::{AtomicPtr, Ordering};
 
 use bitflags::bitflags;
 
-static VIRT_UART0_BASE: usize = 0x10000000;
-static VIRT_TEST_BASE: usize = 0x100000;
-
 /// A memory-mapped UART.
 #[derive(Debug)]
 pub struct MmioSerialPort {
@@ -40,8 +37,8 @@ impl MmioSerialPort {
     /// This function is unsafe because the caller must ensure that the given base address
     /// really points to a serial port device.
     // #[rustversion::attr(since(1.61), const)]
-    pub unsafe fn new() -> Self {
-        let base_pointer = VIRT_UART0_BASE as *mut u8;
+    pub unsafe fn new(base_addr: usize) -> Self {
+        let base_pointer = base_addr as *mut u8;
         Self {
             data: AtomicPtr::new(base_pointer),
             int_en: AtomicPtr::new(unsafe { base_pointer.add(1) }),
