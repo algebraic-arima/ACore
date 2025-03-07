@@ -11,6 +11,7 @@ mod uart;
 mod trap;
 mod init;
 mod loader;
+mod config;
 
 global_asm!(include_str!("entry.asm"));
 global_asm!(include_str!("link_kernel.S"));
@@ -32,6 +33,6 @@ pub fn rust_main() -> ! {
     logging::init();
     log::info!("[kernel] POWERON");
     loader::load_kernel();
-    init::switch_s(0x80200000, 0);
+    loader::run_kernel();
     sbi::shutdown(false)
 }

@@ -8,7 +8,7 @@ pub struct TrapContext {
 }
 
 impl TrapContext {
-    pub fn os_init_context(entry: usize, sp: usize) -> Self {
+    pub fn kernel_init_context(entry: usize, sp: usize) -> Self {
         let mstatus = mstatus::read();
         unsafe {
             mstatus::set_mpp(MPP::Supervisor);

@@ -8,21 +8,22 @@ impl log::Log for SimpleLogger {
         true
     }
     fn log(&self, record: &Record) {
-        if self.enabled(record.metadata()) {
-            if record.level() == Level::Error {
-                println!("\x1b[31m[{:>5}] {}\x1b[0m", record.level(), record.args());
-            } else if record.level() == Level::Warn {
-                println!("\x1b[93m[{:>5}] {}\x1b[0m", record.level(), record.args());
-            } else if record.level() == Level::Info {
-                println!("\x1b[34m[{:>5}] {}\x1b[0m", record.level(), record.args());
-            } else if record.level() == Level::Debug {
-                println!("\x1b[32m[{:>5}] {}\x1b[0m", record.level(), record.args());
-            } else if record.level() == Level::Trace {
-                println!("\x1b[90m[{:>5}] {}\x1b[0m", record.level(), record.args());
-            } else {
-                println!("[{:>5}] {}", record.level(), record.args());
-            }
+        if !self.enabled(record.metadata()) {
+            return;
         }
+        let color = match record.level() {
+            Level::Error => 31, // Red
+            Level::Warn => 93,  // BrightYellow
+            Level::Info => 34,  // Blue
+            Level::Debug => 32, // Green
+            Level::Trace => 90, // BrightBlack
+        };
+        println!(
+            "\u{1B}[{}m[{:>5}] {}\u{1B}[0m",
+            color,
+            record.level(),
+            record.args(),
+        );
     }
     fn flush(&self) {}
 }

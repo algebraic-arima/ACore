@@ -2,6 +2,8 @@
 #![feature(linkage)]
 #![no_main]
 
+use core::arch::asm;
+
 use log::info;
 use riscv::register::time;
 

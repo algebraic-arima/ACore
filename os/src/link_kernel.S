@@ -1,5 +1,4 @@
     .align 4
-    
     .section .data
     .global kernel_start
     .global kernel_end

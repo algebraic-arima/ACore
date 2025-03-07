@@ -1,9 +1,8 @@
 use core::arch::asm;
+use log::info;
 use riscv::register::*;
 
-const MTIME: *const u64 = 0x0200bff8 as *const u64;
-const MTIMECMP: *mut u64 = 0x02004000 as *mut u64;
-const TIME_INTERVAL: u64 = 10000;
+use crate::config::*;
 
 unsafe fn set_medeleg() {
     unsafe {
@@ -37,7 +36,7 @@ unsafe fn set_mideleg() {
 
 pub fn switch_s(s_mode_entry: usize, hartid: usize) {
     unsafe {
-        mstatus::set_mpp(riscv::register::mstatus::MPP::Supervisor);
+        // mstatus::set_mpp(riscv::register::mstatus::MPP::Supervisor);
         mepc::write(s_mode_entry as usize);
         // may call os::trap::context::os_init_context here and get a ctx
 
@@ -54,7 +53,7 @@ pub fn switch_s(s_mode_entry: usize, hartid: usize) {
         pmpcfg0::write(0xf);
 
         let mtime = MTIME.read_volatile();
-        println!("{}", mtime);
+        info!("start: {}", mtime);
         let mtimecmp_addr = (MTIMECMP as usize + 8 * hartid) as *mut u64;
         mtimecmp_addr.write_volatile(mtime + TIME_INTERVAL);
 
@@ -65,8 +64,6 @@ pub fn switch_s(s_mode_entry: usize, hartid: usize) {
 
         mstatus::set_mie();
         mie::set_mtimer();
-
-        asm!("mret", options(noreturn));
     };
 }
 

@@ -64,4 +64,4 @@ __restore_m:
     addi sp, sp, 34*8
     # now sp->kernel stack, sscratch->user stack
     csrrw sp, mscratch, sp
-    sret
+    mret
