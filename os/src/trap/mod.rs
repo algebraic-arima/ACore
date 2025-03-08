@@ -27,9 +27,9 @@ pub fn init() {
 pub fn trap_handler_m(ctx: &mut TrapContext) {
     let mcause = mcause::read().cause();
     let mtval = mtval::read();
-    info!("end: {}", time::read());
-    info!("trap_handler_m: mcause: {:?}, mtval: {:#x}", mcause, mtval);
-    info!(
+    // info!("end: {}", time::read());
+    error!("trap_handler_m: mcause: {:?}, mtval: {:#x}", mcause, mtval);
+    error!(
         "trap_handler_m: scause: {:?}, stval: {:#x}",
         scause::read().cause(),
         stval::read()
@@ -38,22 +38,7 @@ pub fn trap_handler_m(ctx: &mut TrapContext) {
     match mcause {
         Trap::Interrupt(Interrupt::MachineTimer) => {
             ctx.mepc += 4;
-            // todo: handle timer interrupt
-            let mscratch:usize;
-            let sp:usize;
-            unsafe {
-                asm!(
-                    "csrr {0}, mscratch",
-                    "mv {1}, sp",
-                    out(reg) mscratch,
-                    out(reg) sp,
-                    options(nostack)
-                );
-            }
-            
-            error!("mscratch: {:#x}, sp: {:#x}", mscratch, sp);
             error!("time interrupt at {}", time::read());
-            shutdown(false);
             unsafe {
                 let mtimecmp_addr = (MTIMECMP as usize) as *mut u64;
                 mtimecmp_addr.write_volatile(time::read() as u64 + TIME_INTERVAL);

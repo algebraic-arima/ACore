@@ -23,7 +23,11 @@ pub extern "C" fn _start() -> ! {
     sbi::init_uart();
     println!("time:{}", get_time());
     info!("[kernel] Switched to Supervisor Mode");
-    println!("time:{}", get_time());
+    let mut cnt = 100;
+    while cnt > 0 {
+        info!("time = {} at loop {}", get_time(), cnt);
+        cnt -= 1;
+    }
     sbi::shutdown(false)
 }
 
