@@ -37,13 +37,13 @@ pub fn trap_handler_m(ctx: &mut TrapContext) {
     
     match mcause {
         Trap::Interrupt(Interrupt::MachineTimer) => {
-            ctx.mepc += 4;
+            // ctx.mepc += 4;
             error!("time interrupt at {}", time::read());
             unsafe {
                 let mtimecmp_addr = (MTIMECMP as usize) as *mut u64;
                 mtimecmp_addr.write_volatile(time::read() as u64 + TIME_INTERVAL);
             }
-            ctx.x[10] = 0;
+            // ctx.x[10] = 0;
         }
         _ => {
             let mscratch:usize;

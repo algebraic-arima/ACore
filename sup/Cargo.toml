@@ -14,3 +14,5 @@ riscv = { git = "https://github.com/rcore-os/riscv", features = ["inline-asm"] }
 
 [profile.release]
 debug = true
+
+

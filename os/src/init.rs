@@ -4,46 +4,16 @@ use riscv::register::*;
 
 use crate::config::*;
 
-unsafe fn set_medeleg() {
-    unsafe {
-        medeleg::set_breakpoint();
-        medeleg::set_illegal_instruction();
-        medeleg::set_instruction_fault();
-        medeleg::set_instruction_misaligned();
-        medeleg::set_instruction_page_fault();
-        medeleg::set_load_fault();
-        medeleg::set_load_misaligned();
-        medeleg::set_load_page_fault();
-        medeleg::set_store_fault();
-        medeleg::set_store_misaligned();
-        medeleg::set_store_page_fault();
-        medeleg::set_machine_env_call();
-        medeleg::set_supervisor_env_call();
-        medeleg::set_user_env_call();
-    }
-}
-
-unsafe fn set_mideleg() {
-    unsafe {
-        mideleg::set_sext();
-        mideleg::set_ssoft();
-        mideleg::set_stimer();
-        mideleg::set_uext();
-        mideleg::set_usoft();
-        mideleg::set_utimer();
-    }
-}
-
 pub fn switch_s(s_mode_entry: usize, hartid: usize) {
     unsafe {
-        // mstatus::set_mpp(riscv::register::mstatus::MPP::Supervisor);
+        mstatus::set_mpp(riscv::register::mstatus::MPP::Supervisor);
         mepc::write(s_mode_entry as usize);
         // may call os::trap::context::os_init_context here and get a ctx
 
         satp::write(0);
 
-        set_medeleg();
-        set_mideleg();
+        asm!("csrw medeleg, {}", in(reg) 0xffff);
+        asm!("csrw mideleg, {}", in(reg) 0xffff);
 
         sie::set_sext();
         sie::set_ssoft();
@@ -60,10 +30,12 @@ pub fn switch_s(s_mode_entry: usize, hartid: usize) {
         unsafe extern "C" {
             safe fn __alltraps_m();
         } // all-using trap handler from s to m
-        mtvec::write(__alltraps_m as usize, riscv::register::mtvec::TrapMode::Direct);
+        mtvec::write(
+            __alltraps_m as usize,
+            riscv::register::mtvec::TrapMode::Direct,
+        );
 
         mstatus::set_mie();
         mie::set_mtimer();
     };
 }
-

@@ -33,7 +33,7 @@ pub fn trap_handler_s(ctx: &mut TrapContext) {
             // syscall(ctx.x[17], [ctx.x[10], ctx.x[11], ctx.x[12]]) as usize;
             ctx.x[10] = 0;
         }
-        // Trap::Interrupt(Interrupt::MachineTimer) => {
+        // Trap::Interrupt(Interrupt::SupervisorTimer) => {
         //     ctx.sepc += 4;
         //     // todo: handle timer interrupt
         //     ctx.x[10] = 0;
