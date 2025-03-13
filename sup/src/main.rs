@@ -11,6 +11,7 @@ use log::info;
 use riscv::register::{medeleg, time, mideleg};
 
 #[macro_use]
+mod sync;
 mod config;
 mod lang_items;
 mod logging;

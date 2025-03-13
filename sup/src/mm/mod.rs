@@ -1,10 +1,14 @@
 mod address;
-mod buddy_test;
+mod allocator_test;
 mod buddy_allocator;
-pub mod linked_list;
+mod linked_list;
+mod frame_allocator;
+mod page_table;
 mod spin;
 
 pub fn init() {
     buddy_allocator::init_heap();
-    buddy_test::heap_test();
+    allocator_test::heap_test();
+    frame_allocator::init_frame();
+    allocator_test::frame_allocator_test();
 }

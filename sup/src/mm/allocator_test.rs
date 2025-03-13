@@ -1,4 +1,7 @@
+use alloc::vec::Vec;
 use log::info;
+
+use crate::mm::frame_allocator::*;
 
 
 #[allow(unused)]
@@ -25,4 +28,23 @@ pub fn heap_test() {
     assert!(bss_range.contains(&(v.as_ptr() as usize)));
     drop(v);
     info!("heap_test passed!");
+}
+
+#[allow(unused)]
+/// a simple test for frame allocator
+pub fn frame_allocator_test() {
+    let mut v: Vec<FrameTracker> = Vec::new();
+    for i in 0..5 {
+        let frame = frame_alloc().unwrap();
+        info!("{:?}", frame.ppn.0);
+        v.push(frame);
+    }
+    v.clear();
+    for i in 0..5 {
+        let frame = frame_alloc().unwrap();
+        info!("{:?}", frame.ppn.0);
+        v.push(frame);
+    }
+    drop(v);
+    info!("frame_allocator_test passed!");
 }

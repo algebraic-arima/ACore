@@ -25,6 +25,10 @@ SECTIONS
         *(.sbss .sbss.*)
         end_bss = .;
     }
+
+    . = ALIGN(4K);
+    ekernel = .;
+
     /DISCARD/ : {
         *(.eh_frame)
         *(.debug*)

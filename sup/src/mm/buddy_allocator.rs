@@ -1,24 +1,21 @@
 extern crate alloc;
 
-use crate::mm::spin::Spin;
 use core::alloc::{GlobalAlloc, Layout};
 use core::cmp::{max, min};
 use core::mem::size_of;
-use core::ops::Deref;
 use core::ptr::NonNull;
 
 use crate::mm::linked_list::*;
 
 const MAX_ORDER: usize = 32;
 
+use crate::sync::UPSafeCell;
 use crate::{config::KERNEL_HEAP_SIZE, info, println};
 use core::ptr::addr_of_mut;
-
 use log::*;
 
 #[global_allocator]
-/// heap allocator instance
-static HEAP_ALLOCATOR: BuddyAllocator = BuddyAllocator::new();
+pub static HEAP_ALLOCATOR: BuddyAllocator = BuddyAllocator::new();
 
 #[alloc_error_handler]
 /// panic when heap allocation error occurs
@@ -26,13 +23,11 @@ pub fn handle_alloc_error(layout: core::alloc::Layout) -> ! {
     panic!("Heap allocation error, layout = {:?}", layout);
 }
 
-/// heap space ([u8; KERNEL_HEAP_SIZE])
 static mut HEAP_SPACE: [u8; KERNEL_HEAP_SIZE] = [0; KERNEL_HEAP_SIZE];
 
-/// initiate heap allocator
 pub fn init_heap() {
     unsafe {
-        HEAP_ALLOCATOR.lock().init(
+        HEAP_ALLOCATOR.0.exclusive_access().init(
             addr_of_mut!(HEAP_SPACE) as usize,
             addr_of_mut!(HEAP_SPACE) as usize + KERNEL_HEAP_SIZE,
         );
@@ -147,22 +142,11 @@ impl Heap {
     }
 }
 
-unsafe impl Send for Heap {}
-unsafe impl Sync for Heap {}
-
-pub struct BuddyAllocator(Spin<Heap>);
+pub struct BuddyAllocator(UPSafeCell<Heap>);
 
 impl BuddyAllocator {
     pub const fn new() -> BuddyAllocator {
-        BuddyAllocator(Spin::new(Heap::new()))
-    }
-}
-
-impl Deref for BuddyAllocator {
-    type Target = Spin<Heap>;
-
-    fn deref(&self) -> &Spin<Heap> {
-        &self.0
+        BuddyAllocator(unsafe { UPSafeCell::new(Heap::new()) })
     }
 }
 
@@ -170,7 +154,7 @@ unsafe impl GlobalAlloc for BuddyAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         unsafe {
             self.0
-                .lock()
+                .exclusive_access()
                 .alloc(layout)
                 .ok()
                 .map_or(0 as *mut u8, |allocation| allocation.as_ptr())
@@ -178,6 +162,10 @@ unsafe impl GlobalAlloc for BuddyAllocator {
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
-        unsafe { self.0.lock().dealloc(NonNull::new_unchecked(ptr), layout) }
+        unsafe {
+            self.0
+                .exclusive_access()
+                .dealloc(NonNull::new_unchecked(ptr), layout)
+        }
     }
 }
