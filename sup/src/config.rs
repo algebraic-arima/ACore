@@ -17,3 +17,6 @@ pub const VPN_WIDTH_SV39: usize = VA_WIDTH_SV39 - PAGE_SIZE_BITS;
 
 
 pub const CLOCK_FREQ: usize = 12500000;
+
+pub const TRAMPOLINE: usize = usize::MAX - PAGE_SIZE + 1;
+pub const TRAP_CONTEXT: usize = TRAMPOLINE - PAGE_SIZE;

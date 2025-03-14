@@ -29,12 +29,14 @@ pub extern "C" fn _start() -> ! {
     sbi::init_uart();
     println!("time:{}", get_time());
     info!("[kernel] Switched to Supervisor Mode");
-    let mut cnt = 0;
-    while cnt < 1000 {
-        info!("time = {} at loop {}, {}", get_time(), cnt, cnt * cnt);
-        cnt += 1;
-    }
+    // let mut cnt = 0;
+    // while cnt < 1000 {
+    //     info!("time = {} at loop {}, {}", get_time(), cnt, cnt * cnt);
+    //     cnt += 1;
+    // }
     mm::init();
+    sbi::init_uart();
+    mm::memory_set::remap_test();
     sbi::shutdown(false)
 }
 
@@ -44,10 +46,10 @@ pub fn get_time() -> usize {
 
 fn clear_bss() {
     unsafe extern "C" {
-        safe fn start_bss();
-        safe fn end_bss();
+        safe fn sbss();
+        safe fn ebss();
     }
-    (start_bss as usize..end_bss as usize).for_each(|addr| unsafe {
+    (sbss as usize..ebss as usize).for_each(|addr| unsafe {
         (addr as *mut u8).write_volatile(0);
     });
 }

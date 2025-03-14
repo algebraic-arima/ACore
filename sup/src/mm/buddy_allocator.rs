@@ -67,7 +67,7 @@ impl Heap {
     }
 
     pub unsafe fn alloc(&mut self, layout: Layout) -> Result<NonNull<u8>, ()> {
-        info!("alloc {} bytes", layout.size());
+        // info!("alloc {} bytes", layout.size());
         let size = layout.size();
         let align = layout.align();
         let bsize = max(size.next_power_of_two(), max(align, size_of::<usize>()));
@@ -86,10 +86,10 @@ impl Heap {
                     return Err(());
                 }
             }
-            println!("size = {:#x}", layout.size());
-            println!("bsize = {:#x}", bsize);
-            println!("idle size = {:#x}", self.idle);
-            println!("level = {}", lev);
+            // println!("size = {:#x}", layout.size());
+            // println!("bsize = {:#x}", bsize);
+            // println!("idle size = {:#x}", self.idle);
+            // println!("level = {}", lev);
             let result = NonNull::new(
                 self.list[lev]
                     .pop()
@@ -97,7 +97,7 @@ impl Heap {
             );
             if let Some(result) = result {
                 self.idle -= bsize;
-                println!("idle size after = {:#x}", self.idle);
+                // println!("idle size after = {:#x}", self.idle);
                 return Ok(result);
             } else {
                 return Err(());
@@ -107,7 +107,7 @@ impl Heap {
     }
 
     pub unsafe fn dealloc(&mut self, ptr: NonNull<u8>, layout: Layout) {
-        info!("dealloc {} bytes", layout.size());
+        // info!("dealloc {} bytes", layout.size());
         let size = layout.size();
         let align = layout.align();
         let bsize = max(size.next_power_of_two(), max(align, size_of::<usize>()));
@@ -137,7 +137,7 @@ impl Heap {
                 self.list[cur_lev].push(cur_ptr as *mut usize);
             }
             self.idle += bsize;
-            println!("idle size after = {:#x}", self.idle);
+            // println!("idle size after = {:#x}", self.idle);
         }
     }
 }

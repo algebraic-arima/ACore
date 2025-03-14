@@ -110,4 +110,24 @@ impl PageTable {
         assert!(pte.is_valid(), "vpn {:?} is not mapped before unmapping", vpn.0);
         *pte = PageTableEntry::empty();
     }
+
+    pub fn translate(&mut self, vpn: VirtPageNum) -> Option<PageTableEntry> {
+        self.find_pte(vpn).map(|pte| *pte)
+    }
+    
+    pub fn translate_va(&mut self, va: VirtAddr) -> Option<PhysAddr> {
+        self.find_pte(va.clone().floor()).map(|pte| {
+            //println!("translate_va:va = {:?}", va);
+            let aligned_pa: PhysAddr = pte.ppn().into();
+            //println!("translate_va:pa_align = {:?}", aligned_pa);
+            let offset = va.page_offset();
+            let aligned_pa_usize: usize = aligned_pa.into();
+            (aligned_pa_usize + offset).into()
+        })
+    }
+
+    // generate legal satp
+    pub fn token(&self) -> usize {
+        8usize << 60 | self.root_ppn.0
+    }
 }

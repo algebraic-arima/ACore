@@ -12,8 +12,8 @@ pub fn switch_s(s_mode_entry: usize, hartid: usize) {
 
         satp::write(0);
 
-        asm!("csrw medeleg, {}", in(reg) 0xffff);
-        asm!("csrw mideleg, {}", in(reg) 0xffff);
+        asm!("csrw medeleg, {}", in(reg) !0);
+        asm!("csrw mideleg, {}", in(reg) !0);
 
         sie::set_sext();
         sie::set_ssoft();

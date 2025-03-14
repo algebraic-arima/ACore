@@ -18,7 +18,7 @@ impl LinkedList {
     }
 
     pub unsafe fn push(&mut self, item: *mut usize) {
-        *item = self.head as usize;
+        unsafe { *item = self.head as usize };
         self.head = item;
     }
 

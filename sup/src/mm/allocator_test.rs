@@ -9,10 +9,10 @@ pub fn heap_test() {
     use alloc::boxed::Box;
     use alloc::vec::Vec;
     unsafe extern "C" {
-        safe fn start_bss();
-        safe fn end_bss();
+        safe fn sbss();
+        safe fn ebss();
     }
-    let bss_range = start_bss as usize..end_bss as usize;
+    let bss_range = sbss as usize..ebss as usize;
     info!("bss_range: {:x?}..{:x?}", bss_range.start, bss_range.end);
     let a = Box::new(5);
     assert_eq!(*a, 5);
