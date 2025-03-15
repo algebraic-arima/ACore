@@ -23,7 +23,7 @@ pub fn switch_s(s_mode_entry: usize, hartid: usize) {
         pmpcfg0::write(0xf);
 
         let mtime = MTIME.read_volatile();
-        info!("start: {}", mtime);
+        // info!("start: {}", mtime);
         let mtimecmp_addr = (MTIMECMP as usize + 8 * hartid) as *mut u64;
         mtimecmp_addr.write_volatile(mtime + TIME_INTERVAL);
 
@@ -35,7 +35,7 @@ pub fn switch_s(s_mode_entry: usize, hartid: usize) {
             riscv::register::mtvec::TrapMode::Direct,
         );
 
-        mstatus::set_mie();
-        mie::set_mtimer();
+        // mstatus::set_mie();
+        // mie::set_mtimer();
     };
 }

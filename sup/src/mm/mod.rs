@@ -5,10 +5,10 @@ use crate::println;
 mod address;
 mod allocator_test;
 mod buddy_allocator;
-mod linked_list;
 mod frame_allocator;
-mod page_table;
+mod linked_list;
 pub mod memory_set;
+mod page_table;
 mod spin;
 
 pub fn init() {
@@ -17,6 +17,7 @@ pub fn init() {
     frame_allocator::init_frame();
     // allocator_test::frame_allocator_test();
     println!("start init");
-    KERNEL_SPACE.exclusive_access().activate();
+    let f = KERNEL_SPACE.exclusive_access();
+    f.activate();
     println!("init done");
 }

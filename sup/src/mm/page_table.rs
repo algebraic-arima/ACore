@@ -3,6 +3,7 @@ use alloc::vec::Vec;
 use bitflags::*;
 
 use super::{address::*, frame_allocator::*};
+use crate::println;
 
 bitflags! {
     pub struct PTEFlags: u8 {
@@ -60,6 +61,7 @@ pub struct PageTable {
 impl PageTable {
     pub fn new() -> Self {
         let frame = frame_alloc().unwrap();
+        println!("PageTable::new: frame = {:#x}", frame.ppn.0);
         PageTable {
             root_ppn: frame.ppn,
             frames: vec![frame],
@@ -83,7 +85,7 @@ impl PageTable {
         let result = Some(&mut ppn.get_pte_array()[idxs[2]]);
         result
     }
-    
+
     pub fn find_pte(&mut self, vpn: VirtPageNum) -> Option<&mut PageTableEntry> {
         let mut ppn = self.root_ppn;
         let idxs = vpn.indexes();
@@ -107,14 +109,18 @@ impl PageTable {
 
     pub fn unmap(&mut self, vpn: VirtPageNum) {
         let pte = self.find_pte(vpn).unwrap();
-        assert!(pte.is_valid(), "vpn {:?} is not mapped before unmapping", vpn.0);
+        assert!(
+            pte.is_valid(),
+            "vpn {:?} is not mapped before unmapping",
+            vpn.0
+        );
         *pte = PageTableEntry::empty();
     }
 
     pub fn translate(&mut self, vpn: VirtPageNum) -> Option<PageTableEntry> {
         self.find_pte(vpn).map(|pte| *pte)
     }
-    
+
     pub fn translate_va(&mut self, va: VirtAddr) -> Option<PhysAddr> {
         self.find_pte(va.clone().floor()).map(|pte| {
             //println!("translate_va:va = {:?}", va);
@@ -129,5 +135,29 @@ impl PageTable {
     // generate legal satp
     pub fn token(&self) -> usize {
         8usize << 60 | self.root_ppn.0
+    }
+}
+
+use core::fmt::{self, Debug};
+
+impl Debug for PageTable {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // traverse the page table and print out all the pte in a frame
+        for frame in self.frames.iter() {
+            writeln!(f, "frame ppn: {:#x}", frame.ppn.0)?;
+            let ptes = frame.ppn.get_pte_array();
+            for i in 0..512 {
+                if ptes[i].is_valid() {
+                    writeln!(
+                        f,
+                        "    line {:#x}, ppn: {:#x}, flags: {:#x}",
+                        i,
+                        ptes[i].ppn().0,
+                        ptes[i].flags().bits()
+                    )?;
+                }
+            }
+        }
+        Ok(())
     }
 }

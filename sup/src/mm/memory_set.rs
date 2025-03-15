@@ -7,6 +7,8 @@ use riscv::register::satp;
 
 use crate::config::*;
 use crate::println;
+use crate::sbi::print;
+use crate::sbi::shutdown;
 use crate::sync::UPSafeCell;
 
 use super::address::*;
@@ -60,14 +62,14 @@ impl MemorySet {
     /// Assume that no conflicts.
     pub fn insert_framed_area(
         &mut self,
-        start_va: VirtAddr, end_va: VirtAddr, permission: MapPermission
+        start_va: VirtAddr,
+        end_va: VirtAddr,
+        permission: MapPermission,
     ) {
-        self.push(MapArea::new(
-            start_va,
-            end_va,
-            MapType::Framed,
-            permission,
-        ), None);
+        self.push(
+            MapArea::new(start_va, end_va, MapType::Framed, permission),
+            None,
+        );
     }
     // Include sections in elf and trampoline and TrapContext and user stack,
     //  also returns user_sp and entry point.
@@ -79,10 +81,11 @@ impl MapArea {
         start_va: VirtAddr,
         end_va: VirtAddr,
         map_type: MapType,
-        map_perm: MapPermission
+        map_perm: MapPermission,
     ) -> Self {
         let start_vpn: VirtPageNum = start_va.floor();
         let end_vpn: VirtPageNum = end_va.ceil();
+        println!("start_va: {:#x}, end_va: {:#x}", start_va.0, end_va.0);
         Self {
             vpn_range: VPNRange::new(start_vpn, end_vpn),
             data_frames: BTreeMap::new(),
@@ -106,8 +109,11 @@ impl MapArea {
         page_table.map(vpn, ppn, pte_flags);
     }
     pub fn unmap_one(&mut self, page_table: &mut PageTable, vpn: VirtPageNum) {
-        if self.map_type == MapType::Framed {
-            self.data_frames.remove(&vpn);
+        match self.map_type {
+            MapType::Framed => {
+                self.data_frames.remove(&vpn);
+            }
+            _ => {}
         }
         page_table.unmap(vpn);
     }
@@ -158,6 +164,9 @@ unsafe extern "C" {
     safe fn strampoline();
 }
 
+static VIRT_UART0_BASE: usize = 0x10000000;
+static VIRT_TEST_BASE: usize = 0x100000;
+
 impl MemorySet {
     /// Mention that trampoline is not collected by areas.
     fn map_trampoline(&mut self) {
@@ -176,52 +185,96 @@ impl MemorySet {
         println!(".text [{:#x}, {:#x})", stext as usize, etext as usize);
         println!(".rodata [{:#x}, {:#x})", srodata as usize, erodata as usize);
         println!(".data [{:#x}, {:#x})", sdata as usize, edata as usize);
-        println!(".bss [{:#x}, {:#x})", sbss_with_stack as usize, ebss as usize);
+        println!(
+            ".bss [{:#x}, {:#x})",
+            sbss_with_stack as usize, ebss as usize
+        );
         println!("mapping .text section");
-        memory_set.push(MapArea::new(
-            (stext as usize).into(),
-            (etext as usize).into(),
-            MapType::Identical,
-            MapPermission::R | MapPermission::X,
-        ), None);
+        memory_set.push(
+            MapArea::new(
+                (stext as usize).into(),
+                (etext as usize).into(),
+                MapType::Identical,
+                MapPermission::R | MapPermission::X,
+            ),
+            None,
+        );
         println!("mapping .rodata section");
-        memory_set.push(MapArea::new(
-            (srodata as usize).into(),
-            (erodata as usize).into(),
-            MapType::Identical,
-            MapPermission::R,
-        ), None);
+        memory_set.push(
+            MapArea::new(
+                (srodata as usize).into(),
+                (erodata as usize).into(),
+                MapType::Identical,
+                MapPermission::R,
+            ),
+            None,
+        );
         println!("mapping .data section");
-        memory_set.push(MapArea::new(
-            (sdata as usize).into(),
-            (edata as usize).into(),
-            MapType::Identical,
-            MapPermission::R | MapPermission::W,
-        ), None);
+        memory_set.push(
+            MapArea::new(
+                (sdata as usize).into(),
+                (edata as usize).into(),
+                MapType::Identical,
+                MapPermission::R | MapPermission::W,
+            ),
+            None,
+        );
         println!("mapping .bss section");
-        memory_set.push(MapArea::new(
-            (sbss_with_stack as usize).into(),
-            (ebss as usize).into(),
-            MapType::Identical,
-            MapPermission::R | MapPermission::W,
-        ), None);
+        memory_set.push(
+            MapArea::new(
+                (sbss_with_stack as usize).into(),
+                (ebss as usize).into(),
+                MapType::Identical,
+                MapPermission::R | MapPermission::W,
+            ),
+            None,
+        );
         println!("mapping physical memory");
-        memory_set.push(MapArea::new(
-            (ekernel as usize).into(),
-            MEMORY_END.into(),
-            MapType::Identical,
-            MapPermission::R | MapPermission::W,
-        ), None);
+        memory_set.push(
+            MapArea::new(
+                (ekernel as usize).into(),
+                MEMORY_END.into(),
+                MapType::Identical,
+                MapPermission::R | MapPermission::W,
+            ),
+            None,
+        );
+        // println!("mapping uart");
+        // memory_set.push(
+        //     MapArea::new(
+        //         VirtAddr::from(0x10000000),
+        //         VirtAddr::from(0x10000010),
+        //         MapType::Identical,
+        //         MapPermission::R | MapPermission::W | MapPermission::U | MapPermission::X,
+        //     ),
+        //     None,
+        // );
+        println!("mapping virt_test");
+        memory_set.push(
+            MapArea::new(
+                0x100000.into(),
+                0x100010.into(),
+                MapType::Identical,
+                MapPermission::W,
+            ),
+            None,
+        );
         println!("mapping done");
         memory_set
     }
     ///Refresh TLB with `sfence.vma`
     pub fn activate(&self) {
+        println!("activate start");
         let satp = self.page_table.token();
+        println!("satp: {:#x}", satp);
+        println!("Page Table: {:?}", self.page_table);
         unsafe {
             satp::write(satp);
+            println!("Page Table");
+            shutdown(false);
             asm!("sfence.vma");
         }
+        println!("activate done");
     }
     ///Translate throuth pagetable
     pub fn translate(&mut self, vpn: VirtPageNum) -> Option<PageTableEntry> {

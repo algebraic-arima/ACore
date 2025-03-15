@@ -27,7 +27,7 @@ pub extern "C" fn _start() -> ! {
     clear_bss();
     logging::init();
     sbi::init_uart();
-    println!("time:{}", get_time());
+    // println!("time:{}", get_time());
     info!("[kernel] Switched to Supervisor Mode");
     // let mut cnt = 0;
     // while cnt < 1000 {
