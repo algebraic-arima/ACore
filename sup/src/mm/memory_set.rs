@@ -85,7 +85,7 @@ impl MapArea {
     ) -> Self {
         let start_vpn: VirtPageNum = start_va.floor();
         let end_vpn: VirtPageNum = end_va.ceil();
-        println!("start_va: {:#x}, end_va: {:#x}", start_va.0, end_va.0);
+        // println!("start_va: {:#x}, end_va: {:#x}", start_va.0, end_va.0);
         Self {
             vpn_range: VPNRange::new(start_vpn, end_vpn),
             data_frames: BTreeMap::new(),
@@ -239,23 +239,33 @@ impl MemorySet {
             ),
             None,
         );
-        // println!("mapping uart");
-        // memory_set.push(
-        //     MapArea::new(
-        //         VirtAddr::from(0x10000000),
-        //         VirtAddr::from(0x10000010),
-        //         MapType::Identical,
-        //         MapPermission::R | MapPermission::W | MapPermission::U | MapPermission::X,
-        //     ),
-        //     None,
-        // );
+        println!("mapping uart");
+        memory_set.push(
+            MapArea::new(
+                VIRT_UART0_BASE.into(),
+                (VIRT_UART0_BASE + 0x10).into(),
+                MapType::Identical,
+                MapPermission::R | MapPermission::W,
+            ),
+            None,
+        );
         println!("mapping virt_test");
         memory_set.push(
             MapArea::new(
-                0x100000.into(),
-                0x100010.into(),
+                VIRT_TEST_BASE.into(),
+                (VIRT_TEST_BASE + 0x10).into(),
                 MapType::Identical,
-                MapPermission::W,
+                MapPermission::R | MapPermission::W,
+            ),
+            None,
+        );
+        println!("mapping machine");
+        memory_set.push(
+            MapArea::new(
+                0x80000000.into(),
+                0x80200000.into(),
+                MapType::Identical,
+                MapPermission::R | MapPermission::W,
             ),
             None,
         );
@@ -263,15 +273,14 @@ impl MemorySet {
         memory_set
     }
     ///Refresh TLB with `sfence.vma`
+    #[unsafe(no_mangle)]
     pub fn activate(&self) {
         println!("activate start");
         let satp = self.page_table.token();
-        println!("satp: {:#x}", satp);
+        // println!("satp: {:#x}", satp);
         println!("Page Table: {:?}", self.page_table);
         unsafe {
             satp::write(satp);
-            println!("Page Table");
-            shutdown(false);
             asm!("sfence.vma");
         }
         println!("activate done");
@@ -298,7 +307,6 @@ lazy_static! {
 #[allow(unused)]
 ///Check PageTable running correctly
 pub fn remap_test() {
-    println!("DFDFDF");
     let mut kernel_space = KERNEL_SPACE.exclusive_access();
     let mid_text: VirtAddr = ((stext as usize + etext as usize) / 2).into();
     let mid_rodata: VirtAddr = ((srodata as usize + erodata as usize) / 2).into();

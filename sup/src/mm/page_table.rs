@@ -142,7 +142,6 @@ use core::fmt::{self, Debug};
 
 impl Debug for PageTable {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // traverse the page table and print out all the pte in a frame
         for frame in self.frames.iter() {
             writeln!(f, "frame ppn: {:#x}", frame.ppn.0)?;
             let ptes = frame.ppn.get_pte_array();

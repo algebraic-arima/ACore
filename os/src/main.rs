@@ -1,17 +1,17 @@
 #![no_std]
 #![no_main]
 
-use core::arch::global_asm;
+use core::arch::{asm, global_asm};
 
 #[macro_use]
 mod sbi;
-mod lang_items;
-mod logging;
-mod uart;
-mod trap;
-mod init;
-mod loader;
 mod config;
+mod init;
+mod lang_items;
+mod loader;
+mod logging;
+mod trap;
+mod uart;
 
 global_asm!(include_str!("entry.asm"));
 global_asm!(include_str!("link_kernel.S"));

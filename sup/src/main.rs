@@ -5,10 +5,7 @@
 
 extern crate alloc;
 
-use core::arch::asm;
-
 use log::info;
-use riscv::register::{medeleg, time, mideleg};
 
 #[macro_use]
 mod sync;
@@ -27,21 +24,11 @@ pub extern "C" fn _start() -> ! {
     clear_bss();
     logging::init();
     sbi::init_uart();
-    // println!("time:{}", get_time());
     info!("[kernel] Switched to Supervisor Mode");
-    // let mut cnt = 0;
-    // while cnt < 1000 {
-    //     info!("time = {} at loop {}, {}", get_time(), cnt, cnt * cnt);
-    //     cnt += 1;
-    // }
     mm::init();
     sbi::init_uart();
     mm::memory_set::remap_test();
     sbi::shutdown(false)
-}
-
-pub fn get_time() -> usize {
-    time::read()
 }
 
 fn clear_bss() {
