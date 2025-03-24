@@ -1,6 +1,9 @@
 pub const MTIME: *const u64 = 0x0200bff8 as *const u64;
 pub const MTIMECMP: *mut u64 = 0x02004000 as *mut u64;
 pub const TIME_INTERVAL: u64 = 100000;
+
+pub const MACHINE_START: usize = 0x80000000;
+pub const SUPERVISOR_START: usize = 0x80200000;
 pub const MEMORY_END: usize = 0x80800000;
 
 pub const MACHINE_STACK_SIZE: usize = 4096 * 2;
@@ -20,3 +23,6 @@ pub const CLOCK_FREQ: usize = 12500000;
 
 pub const TRAMPOLINE: usize = usize::MAX - PAGE_SIZE + 1;
 pub const TRAP_CONTEXT: usize = TRAMPOLINE - PAGE_SIZE;
+
+pub const VIRT_UART0_BASE: usize = 0x10000000;
+pub const VIRT_TEST_BASE: usize = 0x100000;

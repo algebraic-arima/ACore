@@ -164,9 +164,6 @@ unsafe extern "C" {
     safe fn strampoline();
 }
 
-static VIRT_UART0_BASE: usize = 0x10000000;
-static VIRT_TEST_BASE: usize = 0x100000;
-
 impl MemorySet {
     /// Mention that trampoline is not collected by areas.
     fn map_trampoline(&mut self) {
@@ -239,31 +236,22 @@ impl MemorySet {
             ),
             None,
         );
-        println!("mapping uart");
-        memory_set.push(
-            MapArea::new(
-                VIRT_UART0_BASE.into(),
-                (VIRT_UART0_BASE + 0x10).into(),
-                MapType::Identical,
-                MapPermission::R | MapPermission::W,
-            ),
-            None,
+        println!("mapping mmio");
+        memory_set.page_table.map(
+            VirtAddr::from(VIRT_UART0_BASE).into(),
+            PhysAddr::from(VIRT_UART0_BASE).into(),
+            PTEFlags::R | PTEFlags::W,
         );
-        println!("mapping virt_test");
-        memory_set.push(
-            MapArea::new(
-                VIRT_TEST_BASE.into(),
-                (VIRT_TEST_BASE + 0x10).into(),
-                MapType::Identical,
-                MapPermission::R | MapPermission::W,
-            ),
-            None,
+        memory_set.page_table.map(
+            VirtAddr::from(VIRT_TEST_BASE).into(),
+            PhysAddr::from(VIRT_TEST_BASE).into(),
+            PTEFlags::R | PTEFlags::W,
         );
-        println!("mapping machine");
+        println!("mapping machine area");
         memory_set.push(
             MapArea::new(
-                0x80000000.into(),
-                0x80200000.into(),
+                MACHINE_START.into(),
+                SUPERVISOR_START.into(),
                 MapType::Identical,
                 MapPermission::R | MapPermission::W,
             ),
@@ -275,15 +263,15 @@ impl MemorySet {
     ///Refresh TLB with `sfence.vma`
     #[unsafe(no_mangle)]
     pub fn activate(&self) {
-        println!("activate start");
+        // println!("activate start");
         let satp = self.page_table.token();
         // println!("satp: {:#x}", satp);
-        println!("Page Table: {:?}", self.page_table);
+        // println!("Page Table: {:?}", self.page_table);
         unsafe {
             satp::write(satp);
             asm!("sfence.vma");
         }
-        println!("activate done");
+        // println!("activate done");
     }
     ///Translate throuth pagetable
     pub fn translate(&mut self, vpn: VirtPageNum) -> Option<PageTableEntry> {
@@ -333,4 +321,5 @@ pub fn remap_test() {
             .executable(),
     );
     println!("remap_test passed!");
+    // shutdown(false)
 }

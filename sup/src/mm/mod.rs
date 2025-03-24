@@ -16,8 +16,7 @@ pub fn init() {
     // allocator_test::heap_test();
     frame_allocator::init_frame();
     // allocator_test::frame_allocator_test();
-    println!("start init");
-    let f = KERNEL_SPACE.exclusive_access();
-    f.activate();
-    println!("init done");
+    // println!("start init");
+    KERNEL_SPACE.exclusive_access().activate();
+    // println!("init done");
 }

@@ -26,7 +26,6 @@ pub extern "C" fn _start() -> ! {
     sbi::init_uart();
     info!("[kernel] Switched to Supervisor Mode");
     mm::init();
-    sbi::init_uart();
     mm::memory_set::remap_test();
     sbi::shutdown(false)
 }

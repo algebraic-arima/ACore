@@ -35,7 +35,7 @@ pub fn switch_s(s_mode_entry: usize, hartid: usize) {
             riscv::register::mtvec::TrapMode::Direct,
         );
 
-        // mstatus::set_mie();
-        // mie::set_mtimer();
+        mstatus::set_mie();
+        mie::set_mtimer();
     };
 }
