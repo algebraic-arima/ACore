@@ -1,6 +1,6 @@
 use log::{error, warn, info};
 
-use crate::mmio::MmioSerialPort;
+use crate::uart::MmioSerialPort;
 use core::sync::atomic::{AtomicPtr, Ordering};
 use core::fmt::{self, Write};
 

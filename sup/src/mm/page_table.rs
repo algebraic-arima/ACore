@@ -68,6 +68,13 @@ impl PageTable {
         }
     }
 
+    pub fn from_token(satp: usize) -> Self {
+        Self {
+            root_ppn: PhysPageNum::from(satp & ((1usize << 44) - 1)),
+            frames: Vec::new(),
+        }
+    }
+
     pub fn find_pte_create(&mut self, vpn: VirtPageNum) -> Option<&mut PageTableEntry> {
         let mut ppn = self.root_ppn;
         let idxs = vpn.indexes();
@@ -86,7 +93,7 @@ impl PageTable {
         result
     }
 
-    pub fn find_pte(&mut self, vpn: VirtPageNum) -> Option<&mut PageTableEntry> {
+    pub fn find_pte(&self, vpn: VirtPageNum) -> Option<&mut PageTableEntry> {
         let mut ppn = self.root_ppn;
         let idxs = vpn.indexes();
         for i in 0..2 {
@@ -117,7 +124,7 @@ impl PageTable {
         *pte = PageTableEntry::empty();
     }
 
-    pub fn translate(&mut self, vpn: VirtPageNum) -> Option<PageTableEntry> {
+    pub fn translate(&self, vpn: VirtPageNum) -> Option<PageTableEntry> {
         self.find_pte(vpn).map(|pte| *pte)
     }
 
@@ -137,6 +144,29 @@ impl PageTable {
         8usize << 60 | self.root_ppn.0
     }
 }
+
+pub fn translated_byte_buffer(token: usize, ptr: *const u8, len: usize) -> Vec<&'static mut [u8]> {
+    let page_table = PageTable::from_token(token);
+    let mut start = ptr as usize;
+    let end = start + len;
+    let mut v = Vec::new();
+    while start < end {
+        let start_va = VirtAddr::from(start);
+        let mut vpn = start_va.floor();
+        let ppn = page_table.translate(vpn).unwrap().ppn();
+        vpn.step();
+        let mut end_va: VirtAddr = vpn.into();
+        end_va = end_va.min(VirtAddr::from(end));
+        if end_va.page_offset() == 0 {
+            v.push(&mut ppn.get_bytes_array()[start_va.page_offset()..]);
+        } else {
+            v.push(&mut ppn.get_bytes_array()[start_va.page_offset()..end_va.page_offset()]);
+        }
+        start = end_va.into();
+    }
+    v
+}
+
 
 use core::fmt::{self, Debug};
 
@@ -160,3 +190,4 @@ impl Debug for PageTable {
         Ok(())
     }
 }
+

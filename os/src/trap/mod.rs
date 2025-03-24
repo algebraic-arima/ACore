@@ -8,7 +8,7 @@ use riscv::register::{
     mcause::{self, Exception, Interrupt, Trap},
     mtval,
     mtvec::{self, TrapMode},
-    scause, stval, time,
+    scause, sip, stval, time,
 };
 
 global_asm!(include_str!("trap_m.S"));
@@ -34,20 +34,21 @@ pub fn trap_handler_m(ctx: &mut TrapContext) {
         scause::read().cause(),
         stval::read()
     );
-    
+
     match mcause {
         Trap::Interrupt(Interrupt::MachineTimer) => {
-            // ctx.mepc += 4;
             error!("time interrupt at {}", time::read());
             unsafe {
                 let mtimecmp_addr = (MTIMECMP as usize) as *mut u64;
                 mtimecmp_addr.write_volatile(time::read() as u64 + TIME_INTERVAL);
             }
-            // ctx.x[10] = 0;
+            // unsafe {
+            //     asm!("csrw sip, 32");
+            // }
         }
         _ => {
-            let mscratch:usize;
-            let sp:usize;
+            let mscratch: usize;
+            let sp: usize;
             unsafe {
                 asm!(
                     "csrr {0}, mscratch",
@@ -57,7 +58,7 @@ pub fn trap_handler_m(ctx: &mut TrapContext) {
                     options(nostack)
                 );
             }
-            
+
             error!("mscratch: {:#x}, sp: {:#x}", mscratch, sp);
             panic!("Unhandled exception: {:?}, mtval: {:#x}", mcause, mtval);
         }

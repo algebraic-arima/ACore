@@ -1,13 +1,13 @@
-use memory_set::KERNEL_SPACE;
-
-use crate::println;
+pub use address::{PhysPageNum, VirtAddr};
+pub use memory_set::{KERNEL_SPACE, MapPermission, MemorySet, remap_test};
+pub use page_table::translated_byte_buffer;
 
 mod address;
 mod allocator_test;
 mod buddy_allocator;
 mod frame_allocator;
 mod linked_list;
-pub mod memory_set;
+mod memory_set;
 mod page_table;
 mod spin;
 

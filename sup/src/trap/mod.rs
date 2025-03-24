@@ -1,49 +1,110 @@
 mod context;
+pub use context::TrapContext;
+use riscv::register::sie;
 
-// use crate::syscall::syscall;
-use crate::sbi::*;
-use context::TrapContext;
+use core::arch::asm;
 use core::arch::global_asm;
 use riscv::register::{
     scause::{self, Exception, Interrupt, Trap},
     stval,
     stvec::{self, TrapMode},
 };
+use crate::{config::*, println, syscall::syscall, task::*, timer::*};
 
 global_asm!(include_str!("trap_s.S"));
 
+/// initialize CSR `stvec` as the entry of `__alltraps`
 pub fn init() {
-    unsafe extern "C" {
-        safe fn __alltraps();
-    }
+    set_kernel_trap_entry();
+}
+
+fn set_kernel_trap_entry() {
     unsafe {
-        stvec::write(__alltraps as usize, TrapMode::Direct);
+        stvec::write(trap_from_kernel as usize, TrapMode::Direct);
     }
 }
 
-#[unsafe(no_mangle)] // handle traps from s and u
-pub fn trap_handler_s(ctx: &mut TrapContext) {
-    // println!("dfddfd");
-    let mcause = scause::read().cause();
+fn set_user_trap_entry() {
+    unsafe {
+        stvec::write(TRAMPOLINE as usize, TrapMode::Direct);
+    }
+}
+
+/// enable timer interrupt in sie CSR
+pub fn enable_timer_interrupt() {
+    unsafe {
+        sie::set_stimer();
+    }
+}
+
+#[unsafe(no_mangle)]
+/// handle an interrupt, exception, or system call from user space
+pub fn trap_handler() -> ! {
+    set_kernel_trap_entry();
+    let cx = current_trap_cx();
+    let scause = scause::read();
     let stval = stval::read();
-    // println!("mcause: {:?}, stval: {:#x}", mcause, stval);
-    match mcause {
+    match scause.cause() {
         Trap::Exception(Exception::UserEnvCall) => {
-            ctx.sepc += 4;
-            // syscall(ctx.x[17], [ctx.x[10], ctx.x[11], ctx.x[12]]) as usize;
-            ctx.x[10] = 0;
+            cx.sepc += 4;
+            cx.x[10] = syscall(cx.x[17], [cx.x[10], cx.x[11], cx.x[12]]) as usize;
         }
-        // Trap::Interrupt(Interrupt::SupervisorTimer) => {
-        //     ctx.sepc += 4;
-        //     // todo: handle timer interrupt
-        //     ctx.x[10] = 0;
-        // }
+        Trap::Exception(Exception::StoreFault)
+        | Trap::Exception(Exception::StorePageFault)
+        | Trap::Exception(Exception::LoadFault)
+        | Trap::Exception(Exception::LoadPageFault) => {
+            println!(
+                "[kernel] PageFault in application, bad addr = {:#x}, bad instruction = {:#x}, kernel killed it.",
+                stval, cx.sepc
+            );
+            exit_current_and_run_next();
+        }
+        Trap::Exception(Exception::IllegalInstruction) => {
+            println!("[kernel] IllegalInstruction in application, kernel killed it.");
+            exit_current_and_run_next();
+        }
+        Trap::Interrupt(Interrupt::SupervisorTimer) => {
+            set_next_trigger();
+            suspend_current_and_run_next();
+        }
         _ => {
-            panic!("Unhandled exception: {:?}, stval: {:#x}", mcause, stval);
+            panic!(
+                "Unsupported trap {:?}, stval = {:#x}!",
+                scause.cause(),
+                stval
+            );
         }
     }
+    trap_return();
+}
+
+#[unsafe(no_mangle)]
+/// set the new addr of __restore asm function in TRAMPOLINE page,
+/// set the reg a0 = trap_cx_ptr, reg a1 = phy addr of usr page table,
+/// finally, jump to new addr of __restore asm function
+pub fn trap_return() -> ! {
+    set_user_trap_entry();
+    let trap_cx_ptr = TRAP_CONTEXT;
+    let user_satp = current_user_token();
     unsafe extern "C" {
-        safe fn __restore(ctx_addr: usize);
+        unsafe fn __alltraps();
+        unsafe fn __restore();
     }
-    __restore(ctx as *mut TrapContext as usize);
+    let restore_va = __restore as usize - __alltraps as usize + TRAMPOLINE;
+    unsafe {
+        asm!(
+            "fence.i",
+            "jr {restore_va}",             // jump to new addr of __restore asm function
+            restore_va = in(reg) restore_va,
+            in("a0") trap_cx_ptr,      // a0 = virt addr of Trap Context
+            in("a1") user_satp,        // a1 = phy addr of usr page table
+            options(noreturn)
+        );
+    }
+}
+#[unsafe(no_mangle)]
+/// Unimplement: traps/interrupts/exceptions from kernel mode
+/// Todo: Chapter 9: I/O device
+pub fn trap_from_kernel() -> ! {
+    panic!("a trap from kernel!");
 }

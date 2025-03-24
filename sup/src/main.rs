@@ -6,17 +6,23 @@
 extern crate alloc;
 
 use log::info;
+use mm::remap_test;
 
 #[macro_use]
 mod sync;
 mod config;
 mod lang_items;
 mod logging;
-mod mmio;
+mod uart;
 mod sbi;
 mod syscall;
 mod trap;
 mod mm;
+mod task;
+mod timer;
+mod loader;
+
+core::arch::global_asm!(include_str!("link_app.S"));
 
 #[unsafe(no_mangle)]
 #[unsafe(link_section = ".text.entry")]
@@ -26,7 +32,11 @@ pub extern "C" fn _start() -> ! {
     sbi::init_uart();
     info!("[kernel] Switched to Supervisor Mode");
     mm::init();
-    mm::memory_set::remap_test();
+    remap_test();
+    trap::init();
+    trap::enable_timer_interrupt();
+    timer::set_next_trigger();
+    task::run_first_task();
     sbi::shutdown(false)
 }
 
