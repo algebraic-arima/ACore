@@ -5,10 +5,7 @@ pub use context::TrapContext;
 use core::arch::{asm, global_asm};
 use log::{error, info};
 use riscv::register::{
-    mcause::{self, Exception, Interrupt, Trap},
-    mtval,
-    mtvec::{self, TrapMode},
-    scause, sip, stval, time,
+    mcause::{self, Exception, Interrupt, Trap}, mip, mtval, mtvec::{self, TrapMode}, scause, sip, stval, time
 };
 
 global_asm!(include_str!("trap_m.S"));
@@ -25,12 +22,14 @@ pub fn init() {
 
 #[unsafe(no_mangle)]
 pub fn trap_handler_m(ctx: &mut TrapContext) {
+    let mip = mip::read();
     let mcause = mcause::read().cause();
     let mtval = mtval::read();
     // info!("end: {}", time::read());
-    error!("trap_handler_m: mcause: {:?}, mtval: {:#x}", mcause, mtval);
+    error!("trap_handler_m: mip: {:?}, mcause: {:?}, mtval: {:#x}", mip, mcause, mtval);
     error!(
-        "trap_handler_m: scause: {:?}, stval: {:#x}",
+        "trap_handler_m: sip: {:?}, scause: {:?}, stval: {:#x}",
+        sip::read(),
         scause::read().cause(),
         stval::read()
     );

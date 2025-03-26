@@ -91,6 +91,7 @@ pub fn trap_return() -> ! {
         unsafe fn __restore();
     }
     let restore_va = __restore as usize - __alltraps as usize + TRAMPOLINE;
+    println!("trap_return");
     unsafe {
         asm!(
             "fence.i",
@@ -106,5 +107,7 @@ pub fn trap_return() -> ! {
 /// Unimplement: traps/interrupts/exceptions from kernel mode
 /// Todo: Chapter 9: I/O device
 pub fn trap_from_kernel() -> ! {
-    panic!("a trap from kernel!");
+    let c = scause::read().cause();
+    let t = stval::read();
+    panic!("[kernel] Unsupported trap from kernel: {:?}, stval = {:#x}!", c, t);
 }

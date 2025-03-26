@@ -2,8 +2,6 @@
 
 use core::cell::{RefCell, RefMut};
 
-use crate::println;
-
 /// Wrap a static data structure inside it so that we are
 /// able to access it without any `unsafe`.
 ///

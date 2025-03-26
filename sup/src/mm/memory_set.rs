@@ -264,6 +264,16 @@ impl MemorySet {
             PhysAddr::from(VIRT_TEST_BASE).into(),
             PTEFlags::R | PTEFlags::W,
         );
+        memory_set.page_table.map(
+            VirtAddr::from(MTIME - 0xFF8).into(),
+            PhysAddr::from(MTIME - 0xFF8).into(),
+            PTEFlags::R | PTEFlags::W,
+        );
+        memory_set.page_table.map(
+            VirtAddr::from(MTIMECMP).into(),
+            PhysAddr::from(MTIMECMP).into(),
+            PTEFlags::R | PTEFlags::W,
+        );
         println!("mapping machine area");
         memory_set.push(
             MapArea::new(

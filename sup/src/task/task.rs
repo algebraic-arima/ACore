@@ -1,7 +1,10 @@
 //! Types related to task management
+use core::fmt::Debug;
+
 use super::TaskContext;
 use crate::config::{TRAP_CONTEXT, kernel_stack_position};
 use crate::mm::{KERNEL_SPACE, MapPermission, MemorySet, PhysPageNum, VirtAddr};
+use crate::println;
 use crate::trap::{TrapContext, trap_handler};
 
 /// task control block structure
@@ -25,6 +28,7 @@ impl TaskControlBlock {
     }
     pub fn new(elf_data: &[u8], app_id: usize) -> Self {
         // memory_set with elf program headers/trampoline/trap context/user stack
+        println!("TaskControlBlock::new");
         let (memory_set, user_sp, entry_point) = MemorySet::from_elf(elf_data);
         let trap_cx_ppn = memory_set
             .translate(VirtAddr::from(TRAP_CONTEXT).into())

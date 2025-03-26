@@ -1,5 +1,5 @@
-pub const MTIME: *const u64 = 0x0200bff8 as *const u64;
-pub const MTIMECMP: *mut u64 = 0x02004000 as *mut u64;
+pub const MTIME: usize = 0x0200bff8;
+pub const MTIMECMP: usize = 0x02004000;
 pub const TIME_INTERVAL: u64 = 100000;
 
 pub const MACHINE_START: usize = 0x80000000;
