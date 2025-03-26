@@ -37,7 +37,7 @@ $(KERNEL_BIN): kernel
 
 kernel:
 	@cd ../sup && make build
-	@echo Platform: $(BOARD)
+	@echo Platform: $(BOARD) # now in os
 	@cp src/linker-$(BOARD).ld src/linker.ld
 	@cargo build $(MODE_ARG) || (rm -f src/linker.ld; exit 1)
 	@rm src/linker.ld

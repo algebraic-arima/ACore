@@ -2,12 +2,14 @@
 bootloader
 */target
 
-os/src/link_app.S
-os/src/linker.ld
+sup/src/linker.ld
+user/src/linker.ld
 os/last-*
 */Cargo.lock
 */.gdb_history
 
+os/src/link_kernel.S
+sup/src/link_app.S
 notes.txt
 
 *log
