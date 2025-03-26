@@ -366,17 +366,13 @@ impl MemorySet {
     ///Refresh TLB with `sfence.vma`
     #[unsafe(no_mangle)]
     pub fn activate(&self) {
-        // println!("activate start");
         let satp = self.page_table.token();
-        // println!("satp: {:#x}", satp);
-        // println!("Page Table: {:?}", self.page_table);
         unsafe {
             satp::write(satp);
             asm!("sfence.vma");
         }
-        // println!("activate done");
     }
-    ///Translate throuth pagetable
+    ///Translate through pagetable
     pub fn translate(&self, vpn: VirtPageNum) -> Option<PageTableEntry> {
         self.page_table.translate(vpn)
     }

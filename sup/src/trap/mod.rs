@@ -1,5 +1,6 @@
 mod context;
 pub use context::TrapContext;
+use log::info;
 use riscv::register::sie;
 
 use core::arch::asm;
@@ -91,7 +92,7 @@ pub fn trap_return() -> ! {
         unsafe fn __restore();
     }
     let restore_va = __restore as usize - __alltraps as usize + TRAMPOLINE;
-    println!("trap_return");
+    // info!("trap_return");
     unsafe {
         asm!(
             "fence.i",
