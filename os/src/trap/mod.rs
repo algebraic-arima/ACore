@@ -1,12 +1,17 @@
 mod context;
+mod timer;
 
 use crate::{config::*, sbi::shutdown};
 pub use context::TrapContext;
 use core::arch::{asm, global_asm};
 use log::{error, info};
 use riscv::register::{
-    mcause::{self, Exception, Interrupt, Trap}, mip, mtval, mtvec::{self, TrapMode}, scause, sip, stval, time
+    mcause::{self, Exception, Interrupt, Trap},
+    mip, mtval,
+    mtvec::{self, TrapMode},
+    scause, sip, stval, time,
 };
+pub use timer::*;
 
 global_asm!(include_str!("trap_m.S"));
 
@@ -26,24 +31,18 @@ pub fn trap_handler_m(ctx: &mut TrapContext) {
     let mcause = mcause::read().cause();
     let mtval = mtval::read();
     // info!("end: {}", time::read());
-    error!("trap_handler_m: mip: {:?}, mcause: {:?}, mtval: {:#x}", mip, mcause, mtval);
     error!(
-        "trap_handler_m: sip: {:?}, scause: {:?}, stval: {:#x}",
-        sip::read(),
-        scause::read().cause(),
-        stval::read()
+        "trap_handler_m: mip: {:?}, mcause: {:?}, mtval: {:#x}",
+        mip, mcause, mtval
     );
 
     match mcause {
         Trap::Interrupt(Interrupt::MachineTimer) => {
             error!("time interrupt at {}", time::read());
+            set_next_trigger(0);
             unsafe {
-                let mtimecmp_addr = (MTIMECMP as usize) as *mut u64;
-                mtimecmp_addr.write_volatile(time::read() as u64 + TIME_INTERVAL);
+                asm!("csrw sip, 2");
             }
-            // unsafe {
-            //     asm!("csrw sip, 32");
-            // }
         }
         _ => {
             let mscratch: usize;
@@ -65,5 +64,6 @@ pub fn trap_handler_m(ctx: &mut TrapContext) {
     unsafe extern "C" {
         safe fn __restore_m(ctx_addr: usize);
     }
+
     __restore_m(ctx as *mut TrapContext as usize);
 }

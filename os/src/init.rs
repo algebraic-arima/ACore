@@ -1,8 +1,6 @@
 use core::arch::asm;
-use log::info;
 use riscv::register::*;
-
-use crate::config::*;
+use crate::trap::*;
 
 pub fn switch_s(s_mode_entry: usize, hartid: usize) {
     unsafe {
@@ -19,13 +17,10 @@ pub fn switch_s(s_mode_entry: usize, hartid: usize) {
         sie::set_ssoft();
         sie::set_stimer();
 
-        pmpaddr0::write(0x3fffffffffffff);
+        pmpaddr0::write(0x3fffffffffffffusize);
         pmpcfg0::write(0xf);
 
-        let mtime = MTIME.read_volatile();
-        // info!("start: {}", mtime);
-        let mtimecmp_addr = (MTIMECMP as usize + 8 * hartid) as *mut u64;
-        mtimecmp_addr.write_volatile(mtime + TIME_INTERVAL);
+        set_next_trigger(0);
 
         unsafe extern "C" {
             safe fn __alltraps_m();

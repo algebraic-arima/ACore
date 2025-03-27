@@ -1,6 +1,6 @@
 pub const MTIME: usize = 0x0200bff8;
 pub const MTIMECMP: usize = 0x02004000;
-pub const TIME_INTERVAL: u64 = 100000;
+pub const TIME_INTERVAL: u64 = 200000;
 
 pub const MACHINE_START: usize = 0x80000000;
 pub const SUPERVISOR_START: usize = 0x80200000;

@@ -1,8 +1,12 @@
 mod context;
 pub use context::TrapContext;
 use log::info;
+use log::warn;
+use riscv::register::mcause;
+use riscv::register::mtval;
 use riscv::register::sie;
 
+use crate::{config::*, println, syscall::syscall, task::*, timer::*};
 use core::arch::asm;
 use core::arch::global_asm;
 use riscv::register::{
@@ -10,7 +14,6 @@ use riscv::register::{
     stval,
     stvec::{self, TrapMode},
 };
-use crate::{config::*, println, syscall::syscall, task::*, timer::*};
 
 global_asm!(include_str!("trap_s.S"));
 
@@ -64,8 +67,12 @@ pub fn trap_handler() -> ! {
             println!("[kernel] IllegalInstruction in application, kernel killed it.");
             exit_current_and_run_next();
         }
-        Trap::Interrupt(Interrupt::SupervisorTimer) => {
-            set_next_trigger();
+        Trap::Interrupt(Interrupt::SupervisorSoft) => {
+            info!("SupervisorTimer");
+            // set_next_trigger();
+            unsafe {
+                asm!("csrw sip, 0");
+            }
             suspend_current_and_run_next();
         }
         _ => {
@@ -110,5 +117,8 @@ pub fn trap_return() -> ! {
 pub fn trap_from_kernel() -> ! {
     let c = scause::read().cause();
     let t = stval::read();
-    panic!("[kernel] Unsupported trap from kernel: {:?}, stval = {:#x}!", c, t);
+    panic!(
+        "[kernel] Unsupported trap from kernel: {:?}, stval = {:#x}!",
+        c, t
+    );
 }
