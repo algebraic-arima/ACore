@@ -36,7 +36,7 @@ pub extern "C" fn _start() -> ! {
     trap::init();
     trap::enable_timer_interrupt();
     timer::set_next_trigger();
-    task::run_first_task();
+    // task::run_first_task();
     sbi::shutdown(false)
 }
 

@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io::{Result, Write};
 
 fn main() {
-    println!("cargo:rerun-if-changed=../user/src/");
+    println!("cargo:rerun-if-changed=../sup/src/");
     println!("cargo:rerun-if-changed={}", TARGET_PATH);
     insert_kernel_data().unwrap();
 }

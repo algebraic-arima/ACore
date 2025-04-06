@@ -31,14 +31,14 @@ pub fn trap_handler_m(ctx: &mut TrapContext) {
     let mcause = mcause::read().cause();
     let mtval = mtval::read();
     // info!("end: {}", time::read());
-    error!(
-        "trap_handler_m: mip: {:?}, mcause: {:?}, mtval: {:#x}",
-        mip, mcause, mtval
-    );
+    // error!(
+    //     "trap_handler_m: mip: {:?}, mcause: {:?}, mtval: {:#x}",
+    //     mip, mcause, mtval
+    // );
 
     match mcause {
         Trap::Interrupt(Interrupt::MachineTimer) => {
-            error!("time interrupt at {}", time::read());
+            info!("Machine Timer Interrupt at {}", time::read());
             set_next_trigger(0);
             unsafe {
                 asm!("csrw sip, 2");

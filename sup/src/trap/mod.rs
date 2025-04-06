@@ -5,6 +5,7 @@ use log::warn;
 use riscv::register::mcause;
 use riscv::register::mtval;
 use riscv::register::sie;
+use riscv::register::time;
 
 use crate::{config::*, println, syscall::syscall, task::*, timer::*};
 use core::arch::asm;
@@ -52,6 +53,13 @@ pub fn trap_handler() -> ! {
         Trap::Exception(Exception::UserEnvCall) => {
             cx.sepc += 4;
             cx.x[10] = syscall(cx.x[17], [cx.x[10], cx.x[11], cx.x[12]]) as usize;
+            let mut cx = current_trap_cx();
+            cx.sepc += 4;
+            // get system call return value
+            let result = syscall(cx.x[17], [cx.x[10], cx.x[11], cx.x[12]]);
+            // cx is changed during sys_exec, so we have to call it again
+            cx = current_trap_cx();
+            cx.x[10] = result as usize;
         }
         Trap::Exception(Exception::StoreFault)
         | Trap::Exception(Exception::StorePageFault)
@@ -61,17 +69,18 @@ pub fn trap_handler() -> ! {
                 "[kernel] PageFault in application, bad addr = {:#x}, bad instruction = {:#x}, kernel killed it.",
                 stval, cx.sepc
             );
-            exit_current_and_run_next();
+            exit_current_and_run_next(-2);
         }
         Trap::Exception(Exception::IllegalInstruction) => {
             println!("[kernel] IllegalInstruction in application, kernel killed it.");
-            exit_current_and_run_next();
+            exit_current_and_run_next(-3);
         }
         Trap::Interrupt(Interrupt::SupervisorSoft) => {
-            info!("SupervisorTimer");
+            info!("Supervisor Timer Interrupt at {}", time::read());
             // set_next_trigger();
             unsafe {
-                asm!("csrw sip, 0");
+                let sip = sie::read().bits();
+                asm!("csrw sip, {sip}", sip = in(reg) sip ^ 2);
             }
             suspend_current_and_run_next();
         }
