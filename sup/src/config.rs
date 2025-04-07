@@ -4,7 +4,7 @@ pub const TIME_INTERVAL: u64 = 200000;
 
 pub const MACHINE_START: usize = 0x80000000;
 pub const SUPERVISOR_START: usize = 0x80200000;
-pub const MEMORY_END: usize = 0x80800000;
+pub const MEMORY_END: usize = 0x88000000;
 
 pub const MACHINE_STACK_SIZE: usize = 4096 * 2;
 pub const KERNEL_STACK_SIZE: usize = 4096 * 2;

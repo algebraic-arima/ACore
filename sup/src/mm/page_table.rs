@@ -61,7 +61,7 @@ pub struct PageTable {
 impl PageTable {
     pub fn new() -> Self {
         let frame = frame_alloc().unwrap();
-        println!("PageTable::new: frame = {:#x}", frame.ppn.0);
+        // println!("PageTable::new: frame = {:#x}", frame.ppn.0);
         PageTable {
             root_ppn: frame.ppn,
             frames: vec![frame],

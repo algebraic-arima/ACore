@@ -1,16 +1,19 @@
 #![no_std]
+#![feature(alloc_error_handler)]
 #![feature(linkage)]
 
 #[macro_use]
 pub mod console;
 mod lang_items;
+mod mm;
 mod syscall;
+mod sync;
 
 #[unsafe(no_mangle)]
 #[unsafe(link_section = ".text.entry")]
 pub extern "C" fn _start() -> ! {
+    mm::init();
     exit(main());
-    panic!("unreachable after sys_exit!");
 }
 
 #[linkage = "weak"]

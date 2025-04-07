@@ -38,7 +38,7 @@ pub fn trap_handler_m(ctx: &mut TrapContext) {
 
     match mcause {
         Trap::Interrupt(Interrupt::MachineTimer) => {
-            info!("Machine Timer Interrupt at {}", time::read());
+            // info!("Machine Timer Interrupt at {}", time::read());
             set_next_trigger(0);
             unsafe {
                 asm!("csrw sip, 2");

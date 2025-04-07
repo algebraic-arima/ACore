@@ -74,7 +74,7 @@ pub fn trap_handler() -> ! {
             exit_current_and_run_next(-3);
         }
         Trap::Interrupt(Interrupt::SupervisorSoft) => {
-            info!("Supervisor Timer Interrupt at {}", time::read());
+            // info!("Supervisor Timer Interrupt at {}", time::read());
             // set_next_trigger();
             unsafe {
                 let sip = sie::read().bits();

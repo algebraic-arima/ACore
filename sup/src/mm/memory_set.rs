@@ -7,8 +7,6 @@ use riscv::register::satp;
 
 use crate::config::*;
 use crate::println;
-use crate::sbi::print;
-use crate::sbi::shutdown;
 use crate::sync::UPSafeCell;
 
 use super::address::*;
@@ -280,7 +278,7 @@ impl MemorySet {
             asm!("sfence.vma");
         }
     }
-    ///Translate throuth pagetable
+    ///Translate through pagetable
     pub fn translate(&self, vpn: VirtPageNum) -> Option<PageTableEntry> {
         self.page_table.translate(vpn)
     }

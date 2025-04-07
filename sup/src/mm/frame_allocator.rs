@@ -1,4 +1,4 @@
-use crate::config::*;
+use crate::{config::*, println};
 use alloc::vec::Vec;
 
 use crate::sync::UPSafeCell;
@@ -46,6 +46,7 @@ impl FrameAlloca for StackFrameAllocator {
     }
 
     fn alloc(&mut self) -> Option<PhysPageNum> {
+        // println!("bottom: {:#x}, end: {:#x}", self.bottom, self.end);
         if self.bottom == self.end {
             return None;
         } else if let Some(ppn) = self.recycled.pop() {
