@@ -1,4 +1,4 @@
-pub use address::{PhysPageNum, VirtAddr};
+pub use address::{PhysPageNum, VirtAddr, VirtPageNum};
 pub use memory_set::{KERNEL_SPACE, MapPermission, MemorySet, remap_test};
 pub use page_table::*;
 
@@ -9,7 +9,6 @@ mod frame_allocator;
 mod linked_list;
 mod memory_set;
 mod page_table;
-mod spin;
 
 pub fn init() {
     buddy_allocator::init_heap();

@@ -4,12 +4,13 @@ use core::fmt::Debug;
 
 use super::TaskContext;
 use super::pid::{KernelStack, PidHandle, pid_alloc};
-use crate::config::{TRAP_CONTEXT, kernel_stack_position};
-use crate::mm::{KERNEL_SPACE, MapPermission, MemorySet, PhysPageNum, VirtAddr};
+use crate::config::{kernel_stack_position, PAGE_SIZE, TRAP_CONTEXT, USER_STACK_SIZE};
+use crate::mm::{KERNEL_SPACE, MapPermission, MemorySet, PhysPageNum, VirtAddr, VirtPageNum};
 use crate::sync::UPSafeCell;
 use crate::trap::{TrapContext, trap_handler};
 use alloc::sync::{Arc, Weak};
 use alloc::vec::Vec;
+use log::warn;
 
 pub struct TaskControlBlock {
     // immutable
@@ -25,6 +26,8 @@ pub struct TaskControlBlockInner {
     pub task_cx: TaskContext,
     pub task_status: TaskStatus,
     pub memory_set: MemorySet,
+    pub user_stack_mapped_va: VirtAddr,
+    pub user_stack_bottom: VirtAddr,
     pub parent: Option<Weak<TaskControlBlock>>,
     pub children: Vec<Arc<TaskControlBlock>>,
     pub exit_code: i32,
@@ -42,6 +45,13 @@ impl TaskControlBlockInner {
     }
     pub fn is_zombie(&self) -> bool {
         self.get_status() == TaskStatus::Zombie
+    }
+    pub fn new_page_for_stack(&mut self) {
+        let new_user_stack_mapped_va = VirtAddr::from(self.user_stack_mapped_va.0 - PAGE_SIZE);
+        assert!(new_user_stack_mapped_va.0 >= self.user_stack_bottom.0);
+        self.memory_set.map_stack_page(new_user_stack_mapped_va);
+        self.user_stack_mapped_va = new_user_stack_mapped_va;
+        // warn!("user_stack_bottom: {:#x}, user_stack_mapped_va: {:#x}", self.user_stack_bottom.0, self.user_stack_mapped_va.0);
     }
 }
 
@@ -64,6 +74,7 @@ impl TaskControlBlock {
         let pid_handle = pid_alloc();
         let kernel_stack = KernelStack::new(&pid_handle);
         let kernel_stack_top = kernel_stack.get_top();
+        assert!(user_sp & 0x111 == 0);
         // push a task context which goes to trap_return to the top of kernel stack
         let task_control_block = Self {
             pid: pid_handle,
@@ -75,6 +86,8 @@ impl TaskControlBlock {
                     task_cx: TaskContext::goto_trap_return(kernel_stack_top),
                     task_status: TaskStatus::Ready,
                     memory_set,
+                    user_stack_mapped_va: VirtAddr::from(user_sp),
+                    user_stack_bottom: VirtAddr::from(user_sp - USER_STACK_SIZE),
                     parent: None,
                     children: Vec::new(),
                     exit_code: 0,
@@ -116,6 +129,8 @@ impl TaskControlBlock {
                     task_cx: TaskContext::goto_trap_return(kernel_stack_top),
                     task_status: TaskStatus::Ready,
                     memory_set,
+                    user_stack_mapped_va: parent_inner.user_stack_mapped_va,
+                    user_stack_bottom: parent_inner.user_stack_bottom,
                     parent: Some(Arc::downgrade(self)),
                     children: Vec::new(),
                     exit_code: 0,
@@ -147,6 +162,11 @@ impl TaskControlBlock {
         inner.memory_set = memory_set;
         // update trap_cx ppn
         inner.trap_cx_ppn = trap_cx_ppn;
+        // update user stack
+        inner.user_stack_mapped_va = VirtAddr::from(user_sp);
+        inner.user_stack_bottom = VirtAddr::from(user_sp - USER_STACK_SIZE);
+        // update base size
+        inner.base_size = user_sp;
         // initialize trap_cx
         let trap_cx = inner.get_trap_cx();
         *trap_cx = TrapContext::app_init_context(

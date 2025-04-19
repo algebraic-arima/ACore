@@ -63,11 +63,24 @@ pub fn trap_handler() -> ! {
         | Trap::Exception(Exception::StorePageFault)
         | Trap::Exception(Exception::LoadFault)
         | Trap::Exception(Exception::LoadPageFault) => {
-            println!(
-                "[kernel] PageFault in application, bad addr = {:#x}, bad instruction = {:#x}, kernel killed it.",
-                stval, cx.sepc
-            );
-            exit_current_and_run_next(-2);
+            let stval = stval::read();
+            let mapped_stack = current_user_mapped_stack();
+            let user_stack_bottom = current_user_stack_bottom();
+            // check if the faulting address is in the mapped stack
+            if stval >= mapped_stack || stval < user_stack_bottom {
+                info!(
+                    "[kernel] Illegal memory access in application, bad addr = {:#x}, bad instruction = {:#x}, kernel killed it.",
+                    stval, cx.sepc
+                );
+                exit_current_and_run_next(-2);
+            } else {
+                info!(
+                    "[kernel] PageFault in application, bad addr = {:#x}, bad instruction = {:#x}, new page mapped in stack.",
+                    stval, cx.sepc
+                );
+                expand_user_stack();
+                suspend_current_and_run_next();
+            }
         }
         Trap::Exception(Exception::IllegalInstruction) => {
             println!("[kernel] IllegalInstruction in application, kernel killed it.");

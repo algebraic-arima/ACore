@@ -17,16 +17,11 @@ mod pid;
 mod processor;
 mod manager;
 
-use crate::loader::{get_app_data, get_app_data_by_name, get_num_app};
+use crate::loader::get_app_data_by_name;
 use crate::println;
-use crate::sbi::shutdown;
-use crate::sync::UPSafeCell;
-use crate::trap::TrapContext;
 use alloc::sync::Arc;
-use alloc::vec::Vec;
 use lazy_static::*;
 use processor::{schedule, take_current_task};
-use switch::__switch;
 use task::{TaskControlBlock, TaskStatus};
 pub use processor::*;
 pub use manager::*;
@@ -43,6 +38,7 @@ pub fn add_initproc() {
     add_task(INITPROC.clone());
 }
 
+#[unsafe(no_mangle)]
 pub fn suspend_current_and_run_next(){
     let task = take_current_task().unwrap();
     let mut inner = task.inner_exclusive_access();

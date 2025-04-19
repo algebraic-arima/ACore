@@ -3,6 +3,8 @@ use core::arch::asm;
 use alloc::collections::btree_map::BTreeMap;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
+use log::info;
+use log::warn;
 use riscv::register::satp;
 
 use crate::config::*;
@@ -221,19 +223,23 @@ impl MemorySet {
         }
         // map user stack with U flags
         let max_end_va: VirtAddr = max_end_vpn.into();
-        let mut user_stack_bottom: usize = max_end_va.into();
-        // guard page
-        user_stack_bottom += PAGE_SIZE;
+        let user_stack_bottom: usize = max_end_va.into();
+        // we do not use guard page
+        // user_stack_bottom += PAGE_SIZE;
         let user_stack_top = user_stack_bottom + USER_STACK_SIZE;
-        memory_set.push(
-            MapArea::new(
-                user_stack_bottom.into(),
-                user_stack_top.into(),
-                MapType::Framed,
-                MapPermission::R | MapPermission::W | MapPermission::U,
-            ),
-            None,
-        );
+
+        // we do not map all the stack in advance
+        // info!("user stack top: {:#x}", user_stack_top);
+        // memory_set.push(
+        //     MapArea::new(
+        //         user_stack_bottom.into(),
+        //         user_stack_top.into(),
+        //         MapType::Framed,
+        //         MapPermission::R | MapPermission::W | MapPermission::U,
+        //     ),
+        //     None,
+        // );
+
         // map TrapContext
         memory_set.push(
             MapArea::new(
@@ -286,6 +292,22 @@ impl MemorySet {
     pub fn recycle_data_pages(&mut self) {
         //*self = Self::new_bare();
         self.areas.clear();
+    }
+    // expand user stack
+    pub fn map_stack_page(&mut self, va: VirtAddr) {
+        // info!("map stack page: {:#x}", va.0);
+        // warn!("page table: {:?}", self.page_table);
+        self.push(
+            MapArea::new(
+                va.into(),
+                (va.0 + PAGE_SIZE).into(),
+                MapType::Framed,
+                MapPermission::R | MapPermission::W | MapPermission::U,
+            ),
+            None,
+        );
+        // println!("after");
+        // warn!("page table: {:?}", self.page_table);
     }
 }
 /// map area structure, controls a contiguous piece of virtual memory

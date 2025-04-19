@@ -1,6 +1,6 @@
 use alloc::sync::Arc;
 
-use crate::{sync::UPSafeCell, trap::TrapContext};
+use crate::{mm::VirtAddr, sync::UPSafeCell, trap::TrapContext};
 
 use super::{manager::fetch_task, switch::__switch, task::{TaskControlBlock, TaskStatus}, TaskContext};
 
@@ -52,7 +52,23 @@ pub fn current_trap_cx() -> &'static mut TrapContext {
     current_task().unwrap().inner_exclusive_access().get_trap_cx()
 }
 
+pub fn current_user_mapped_stack() -> usize {
+    current_task().unwrap().inner_exclusive_access().user_stack_mapped_va.0
+}
+
+pub fn current_user_stack_bottom() -> usize {
+    current_task().unwrap().inner_exclusive_access().user_stack_bottom.0
+}
+
+pub fn expand_user_stack() {
+    current_task()
+        .unwrap()
+        .inner_exclusive_access()
+        .new_page_for_stack();
+}
+
 // 
+#[unsafe(no_mangle)]
 pub fn run_tasks() {
     loop {
         let mut processor = PROCESSOR.exclusive_access();
@@ -72,6 +88,8 @@ pub fn run_tasks() {
                     idle_task_cx_ptr,
                     next_task_cx_ptr,
                 );
+                // when first called,
+                // __switch can store the context of the kernal startup
             }
         }
     }
@@ -90,3 +108,36 @@ pub fn schedule(switched_task_cx_ptr: *mut TaskContext) {
         );
     }
 }
+
+
+// another schedule
+// #[unsafe(no_mangle)]
+// pub fn schedule(switched_task_cx_ptr: *mut TaskContext) {
+//     // let mut processor = PROCESSOR.exclusive_access();
+//     // // loop{}
+//     // let idle_task_cx_ptr = processor.get_idle_task_cx_ptr();
+//     // drop(processor);
+
+//     loop {
+//         let mut processor = PROCESSOR.exclusive_access();
+//         if let Some(task) = fetch_task() {
+//             // access coming task TCB exclusively
+//             let mut task_inner = task.inner_exclusive_access();
+//             let next_task_cx_ptr = &task_inner.task_cx as *const TaskContext;
+//             task_inner.task_status = TaskStatus::Running;
+//             // stop exclusively accessing coming task TCB manually
+//             drop(task_inner);
+//             processor.current = Some(task);
+//             // stop exclusively accessing processor manually
+//             drop(processor);
+//             unsafe {
+//                 __switch(
+//                     switched_task_cx_ptr,
+//                     next_task_cx_ptr,
+//                 );
+//             }
+//             break;
+//         }
+//     }
+    
+// }
