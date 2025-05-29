@@ -79,7 +79,7 @@ pub fn trap_handler() -> ! {
                     stval, cx.sepc
                 );
                 expand_user_stack();
-                suspend_current_and_run_next();
+                suspend_current_and_run_next(); // by the way schedule
             }
         }
         Trap::Exception(Exception::IllegalInstruction) => {
