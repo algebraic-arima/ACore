@@ -48,6 +48,7 @@ impl SuperBlock {
 const INODE_DIRECT_COUNT: usize = 28;
 
 #[repr(C)]
+#[derive(Clone)]
 pub struct DiskInode {
     pub size: u32,                         // size in bytes
     pub direct: [u32; INODE_DIRECT_COUNT], // points to at most 28 blocks
@@ -59,6 +60,7 @@ pub struct DiskInode {
 // exactly 128 bytes
 
 #[derive(PartialEq)]
+#[derive(Clone)]
 pub enum DiskInodeType {
     File,
     Directory,
@@ -379,6 +381,10 @@ impl DirEntry {
             name: [0u8; NAME_LENGTH_LIMIT + 1],
             inode_number: 0,
         }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.inode_number == 0 && self.name.iter().all(|&b| b == 0)
     }
 
     pub fn new(name: &str, inode_number: u32) -> Self {

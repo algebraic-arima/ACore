@@ -1,11 +1,12 @@
 use super::{
-    block_cache_sync_all, get_block_cache, BlockDevice, DirEntry, DiskInode, DiskInodeType,
-    FileSystem, DIRENT_SZ,
+    BlockDevice, DIRENT_SZ, DirEntry, DiskInode, DiskInodeType, FileSystem, block_cache_sync_all,
+    get_block_cache,
 };
 use alloc::string::String;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use spin::{Mutex, MutexGuard};
+
 pub struct Inode {
     block_id: usize,     // block id on disk
     block_offset: usize, // dist offset in block
@@ -57,6 +58,35 @@ impl Inode {
         None
     }
 
+    fn remove_inode_id(&self, name: &str, disk_inode: &mut DiskInode) -> Option<u32> {
+        // assert it is a directory
+        assert!(disk_inode.is_dir());
+        let file_count = (disk_inode.size as usize) / DIRENT_SZ;
+        let mut dirent = DirEntry::empty();
+        // let mut flag = false;
+        // let mut inode_id = None;
+        for i in 0..file_count {
+            assert_eq!(
+                disk_inode.read_at(DIRENT_SZ * i, dirent.as_bytes_mut(), &self.block_device,),
+                DIRENT_SZ,
+            );
+            // if flag {
+            //     disk_inode.write_at(
+            //         (i - 1) * DIRENT_SZ,
+            //         dirent.as_bytes(),
+            //         &self.block_device,
+            //     );
+            //     continue;
+            // }
+            if dirent.name() == name {
+                // remove the dirent
+                disk_inode.write_at(DIRENT_SZ * i, &[0; DIRENT_SZ], &self.block_device);
+                return Some(dirent.inode_number() as u32);
+            }
+        }
+        None
+    }
+
     pub fn find(&self, name: &str) -> Option<Arc<Inode>> {
         let fs = self.fs.lock();
         self.read_disk_inode(|disk_inode: &DiskInode| {
@@ -86,6 +116,10 @@ impl Inode {
                     disk_inode.read_at(i * DIRENT_SZ, dirent.as_bytes_mut(), &self.block_device,),
                     DIRENT_SZ,
                 );
+                // if name is empty, skip
+                if dirent.is_empty() {
+                    continue;
+                }
                 v.push(String::from(dirent.name()));
             }
             v
@@ -152,16 +186,12 @@ impl Inode {
         if self.read_disk_inode(op).is_some() {
             return None;
         }
+
         // create a new directory
         // alloc a inode with an indirect block
         let new_inode_id = fs.alloc_inode();
-        // initialize inode
-        let (new_inode_block_id, new_inode_block_offset) = fs.get_disk_inode_pos(new_inode_id);
-        get_block_cache(new_inode_block_id as usize, Arc::clone(&self.block_device))
-            .lock()
-            .modify(new_inode_block_offset, |new_inode: &mut DiskInode| {
-                new_inode.initialize(DiskInodeType::Directory);
-            });
+
+        // write the inode_id to the parent directory
         self.modify_disk_inode(|cur_dir_inode| {
             // append file in the dirent
             let file_count = (cur_dir_inode.size as usize) / DIRENT_SZ;
@@ -177,8 +207,14 @@ impl Inode {
             );
         });
 
+        // initialize new inode
+        let (new_inode_block_id, new_inode_block_offset) = fs.get_disk_inode_pos(new_inode_id);
+        get_block_cache(new_inode_block_id as usize, Arc::clone(&self.block_device))
+            .lock()
+            .modify(new_inode_block_offset, |new_inode: &mut DiskInode| {
+                new_inode.initialize(DiskInodeType::Directory);
+            });
         let (block_id, block_offset) = fs.get_disk_inode_pos(new_inode_id);
-        block_cache_sync_all();
         // return inode
         let new_inode = Arc::new(Self::new(
             block_id,
@@ -188,6 +224,7 @@ impl Inode {
         ));
         // initialize . and .. in directory
         new_inode.modify_disk_inode(|disk_inode| {
+            assert!(disk_inode.is_dir());
             let new_size = 2 * DIRENT_SZ; // . and ..
             // increase size
             self.increase_size(new_size as u32, disk_inode, &mut fs);
@@ -199,18 +236,148 @@ impl Inode {
             let dirent = DirEntry::new("..", parent_inode_id);
             disk_inode.write_at(DIRENT_SZ, dirent.as_bytes(), &self.block_device);
         });
+        block_cache_sync_all();
         Some(new_inode)
     }
+
+    pub fn remove(&self, name: &str) -> bool {
+        // remove a file or directory
+        let mut fs = self.fs.lock();
+        self._remove(name, &mut fs)
+    }
+
+    /// remove a file or directory
+    fn _remove(&self, name: &str, fs: &mut MutexGuard<'_, FileSystem>) -> bool {
+        print!("{}: ", name);
+        let mut inode_id = None;
+        let mut disk_inode = None;
+        self.modify_disk_inode(|cur_dir_inode| {
+            // assert it is a directory
+            assert!(cur_dir_inode.is_dir());
+            inode_id = self.remove_inode_id(name, cur_dir_inode);
+        });
+        if let Some(inode_id) = inode_id {
+            fs.dealloc_inode(inode_id);
+            // dealloc data blocks
+            let (block_id, block_offset) = fs.get_disk_inode_pos(inode_id);
+            get_block_cache(block_id as usize, Arc::clone(&self.block_device))
+                .lock()
+                .modify(block_offset, |dinode: &mut DiskInode| {
+                    disk_inode = Some(dinode.clone());
+                });
+            // disk_inode is the inode to be removed
+            if let Some(mut disk_inode) = disk_inode {
+                if disk_inode.is_file() {
+                    println!("file removing");
+                    // dealloc data blocks possessed by the file
+                    let size = disk_inode.size;
+                    let data_blocks_dealloc = disk_inode.clear_size(&self.block_device);
+                    assert!(data_blocks_dealloc.len() == DiskInode::total_blocks(size) as usize);
+                    for data_block in data_blocks_dealloc.into_iter() {
+                        fs.dealloc_data(data_block);
+                    }
+                } else if disk_inode.is_dir() {
+                    println!("dir removing");
+                    // recursively remove all files in the directory
+                    let file_count = (disk_inode.size as usize) / DIRENT_SZ;
+                    // then construct the Inode
+                    let dir_inode = Arc::new(Self::new(
+                        block_id,
+                        block_offset,
+                        self.fs.clone(),
+                        self.block_device.clone(),
+                    ));
+                    for i in 2..file_count {
+                        let mut dirent = DirEntry::empty();
+                        assert_eq!(
+                            disk_inode.read_at(
+                                i * DIRENT_SZ,
+                                dirent.as_bytes_mut(),
+                                &self.block_device,
+                            ),
+                            DIRENT_SZ,
+                        );
+                        if dirent.is_empty() {
+                            continue;
+                        }
+                        dir_inode._remove(dirent.name(), fs);
+                    }
+                    let size = disk_inode.size;
+                    let data_blocks_dealloc = disk_inode.clear_size(&self.block_device);
+                    assert!(data_blocks_dealloc.len() == DiskInode::total_blocks(size) as usize);
+                    for data_block in data_blocks_dealloc.into_iter() {
+                        fs.dealloc_data(data_block);
+                    }
+                }
+            }
+            block_cache_sync_all();
+            true
+        } else {
+            false
+        }
+    }
+
+    // /// remove a directory
+    // pub fn rmdir(&self, name: &str) -> bool {
+    //     let mut fs = self.fs.lock();
+    //     let mut inode_id = None;
+    //     let mut disk_inode: DiskInode;
+    //     self.modify_disk_inode(|cur_dir_inode| {
+    //         // assert it is a directory
+    //         assert!(cur_dir_inode.is_dir());
+    //         inode_id = self.remove_inode_id(name, cur_dir_inode);
+    //     });
+    //     // inode_id is the inode id of the directory to be removed
+    //     if let Some(inode_id) = inode_id {
+    //         fs.dealloc_inode(inode_id);
+    //         // dealloc data blocks
+    //         let (block_id, block_offset) = fs.get_disk_inode_pos(inode_id);
+    //         // recursively remove all files in the directory
+    //         // first get the inode of the directory
+    //         get_block_cache(block_id as usize, Arc::clone(&self.block_device))
+    //             .lock()
+    //             .modify(block_offset, |dinode: &mut DiskInode| {
+    //                 assert!(dinode.is_dir());
+    //                 disk_inode = dinode.clone();
+    //             });
+    //         let file_count = (disk_inode.size as usize) / DIRENT_SZ;
+    //         // then construct the Inode
+    //         let dir_inode = Arc::new(Self::new(
+    //             block_id,
+    //             block_offset,
+    //             self.fs.clone(),
+    //             self.block_device.clone(),
+    //         ));
+    //         for i in 0..file_count {
+    //             let mut dirent = DirEntry::empty();
+    //             assert_eq!(
+    //                 disk_inode.read_at(i * DIRENT_SZ, dirent.as_bytes_mut(), &self.block_device,),
+    //                 DIRENT_SZ,
+    //             );
+    //             if dirent.is_empty() {
+    //                 continue;
+    //             }
+    //         }
+
+    //         true
+    //     } else {
+    //         false
+    //     }
+    // }
 
     /// Read data from current inode
     pub fn read_at(&self, offset: usize, buf: &mut [u8]) -> usize {
         let _fs = self.fs.lock();
-        self.read_disk_inode(|disk_inode| disk_inode.read_at(offset, buf, &self.block_device))
+        self.read_disk_inode(|disk_inode| {
+            assert!(disk_inode.is_file());
+            disk_inode.read_at(offset, buf, &self.block_device)
+        })
     }
     /// Write data to current inode
     pub fn write_at(&self, offset: usize, buf: &[u8]) -> usize {
         let mut fs = self.fs.lock();
         let size = self.modify_disk_inode(|disk_inode| {
+            assert!(disk_inode.is_file());
             self.increase_size((offset + buf.len()) as u32, disk_inode, &mut fs);
             disk_inode.write_at(offset, buf, &self.block_device)
         });

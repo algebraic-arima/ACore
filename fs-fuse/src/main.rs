@@ -89,7 +89,7 @@ fn fs_pack() -> std::io::Result<()> {
 
 #[test]
 fn fs_test() -> std::io::Result<()> {
-    print!("Testing...\n");
+    print!("Loading img...\n");
     let block_file = Arc::new(BlockFile(Mutex::new({
         let f = OpenOptions::new()
             .read(true)
@@ -101,19 +101,53 @@ fn fs_test() -> std::io::Result<()> {
     })));
     FileSystem::create(block_file.clone(), 4096, 1);
     let fs = FileSystem::open(block_file.clone());
+    println!("Testing creating files/dirs in root...");
     let root_inode = FileSystem::root_inode(&fs);
     root_inode.create("filea");
     root_inode.create("fileb");
-    root_inode.mkdir("tmp");
+    root_inode.mkdir("usr");
     for name in root_inode.ls() {
-        println!("{}", name);
+        println!("/: {}", name);
     }
+    println!("Testing removing fileb...");
+    root_inode.remove("fileb");
+    for name in root_inode.ls() {
+        println!("/: {}", name);
+    }
+    let null_inode = root_inode.find("fileb");
+    assert!(null_inode.is_none(), "fileb should be removed!");
+    println!("Testing creating filec in /usr...");
+    let usr_inode = root_inode.find("usr").unwrap();
+    usr_inode.create("filec");
+    for name in usr_inode.ls() {
+        println!("/usr: {}", name);
+    }
+    let par_node = usr_inode.find("..").unwrap();
+    println!("Testing removing directory tmp...");
+    root_inode.mkdir("tmp");
     let tmp_inode = root_inode.find("tmp").unwrap();
-    tmp_inode.create("filec");
+    tmp_inode.create("file_in_tmp");
     for name in tmp_inode.ls() {
         println!("/tmp: {}", name);
     }
-    let par_node = tmp_inode.find("..").unwrap();
+    let file_in_tmp = tmp_inode.find("file_in_tmp").unwrap();
+    file_in_tmp.write_at(0, b"Hello, tmp!");
+    let mut buffer = [0u8; 512];
+    let len = file_in_tmp.read_at(0, &mut buffer);
+    assert_eq!(
+        core::str::from_utf8(&buffer[..len]).unwrap(),
+        "Hello, tmp!",
+        "Read content should match!"
+    );
+    println!("Content of file_in_tmp: {}", core::str::from_utf8(&buffer[..len]).unwrap());
+    root_inode.remove("tmp");
+    for name in root_inode.ls() {
+        println!("/: {}", name);
+    }
+    assert!(root_inode.find("tmp").is_none(), "tmp should be removed!");
+
+    println!("Testing writing and reading filea...");
+
     let filea = par_node.find("filea").unwrap();
     let greet_str = "Hello, world!";
     filea.write_at(0, greet_str.as_bytes());

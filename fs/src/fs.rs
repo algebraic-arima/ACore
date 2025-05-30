@@ -127,6 +127,11 @@ impl FileSystem {
         self.inode_bitmap.alloc(&self.block_device).unwrap() as u32
     }
 
+    /// Deallocate an inode
+    pub fn dealloc_inode(&mut self, bit: u32) {
+        self.inode_bitmap.dealloc(&self.block_device, bit as usize);
+    }
+
     /// Allocate a data block
     pub fn alloc_data(&mut self) -> u32 {
         self.data_bitmap.alloc(&self.block_device).unwrap() as u32 + self.data_area_start_block
