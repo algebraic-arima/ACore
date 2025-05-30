@@ -146,8 +146,29 @@ fn fs_test() -> std::io::Result<()> {
     }
     assert!(root_inode.find("tmp").is_none(), "tmp should be removed!");
 
-    println!("Testing writing and reading filea...");
+    println!("Testing renaming...");
+    usr_inode.rename("filec", "filed");
+    for name in usr_inode.ls() {
+        println!("/usr: {}", name);
+    }
+    assert!(usr_inode.find("filec").is_none(), "filec should be renamed to filed!");
+    assert!(usr_inode.find("filed").is_some(), "filed should exist!");
+    root_inode.rename("usr", "user");
+    for name in root_inode.ls() {
+        println!("/: {}", name);
+    }
+    assert!(root_inode.find("usr").is_none(), "usr should be renamed to user!");
+    assert!(root_inode.find("user").is_some(), "user should exist!");
+    root_inode.rename("user", "usr");
 
+    // println!("Testing absolute path finding...");
+    // let filed_inode = usr_inode.find("filed").unwrap();
+    // let filed_inode_tmp = FileSystem::abs_path_to_inode(&fs, "/usr/filed").unwrap();
+    // assert!(filed_inode_tmp.is_file(), "filed should be a file!");
+    // assert!(filed_inode_tmp.get_block_id() == filed_inode.get_block_id(), "filed inode should match!");
+    // assert!(filed_inode_tmp.get_block_offset() == filed_inode.get_block_offset(), "filed inode offset should match!");
+
+    println!("Testing writing and reading filea...");
     let filea = par_node.find("filea").unwrap();
     let greet_str = "Hello, world!";
     filea.write_at(0, greet_str.as_bytes());
