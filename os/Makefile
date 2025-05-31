@@ -58,7 +58,9 @@ run: run-inner
 QEMU_ARGS := -machine virt \
 			 -nographic \
 			 -bios $(BOOTLOADER) \
-			 -device loader,file=$(KERNEL_BIN),addr=$(KERNEL_ENTRY_PA)
+			 -device loader,file=$(KERNEL_BIN),addr=$(KERNEL_ENTRY_PA) \
+			 -drive file=$(FS_IMG),if=none,id=fs \
+			 -device virtio-blk-device,drive=fs,bus=virtio-mmio-bus.0
 
 QEMU_NAME := qemu-system-riscv64
 qemu-version-check:

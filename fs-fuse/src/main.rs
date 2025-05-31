@@ -26,7 +26,7 @@ impl BlockDevice for BlockFile {
 }
 
 fn main() {
-    fs_pack().expect("Error when packing easy-fs!");
+    fs_pack().expect("Error when packing fs!");
 }
 
 fn fs_pack() -> std::io::Result<()> {
@@ -75,9 +75,9 @@ fn fs_pack() -> std::io::Result<()> {
         let mut host_file = File::open(format!("{}{}", target_path, app)).unwrap();
         let mut all_data: Vec<u8> = Vec::new();
         host_file.read_to_end(&mut all_data).unwrap();
-        // create a file in easy-fs
+        // create a file in fs
         let inode = root_inode.create(app.as_str()).unwrap();
-        // write data to easy-fs
+        // write data to fs
         inode.write_at(0, all_data.as_slice());
     }
     // list apps

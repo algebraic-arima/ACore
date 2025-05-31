@@ -1,6 +1,8 @@
 pub use address::{PhysPageNum, VirtAddr, VirtPageNum};
-pub use memory_set::{KERNEL_SPACE, MapPermission, MemorySet, remap_test};
+pub use memory_set::{KERNEL_SPACE, MapPermission, MemorySet, remap_test, kernel_token};
 pub use page_table::*;
+pub use frame_allocator::{frame_alloc, frame_dealloc, FrameTracker};
+
 
 mod address;
 mod allocator_test;

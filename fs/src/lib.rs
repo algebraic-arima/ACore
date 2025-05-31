@@ -1,4 +1,3 @@
-//!An easy file system isolated from the kernel
 extern crate alloc;
 extern crate lru;
 mod bitmap;

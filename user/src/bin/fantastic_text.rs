@@ -32,7 +32,7 @@ pub fn main() -> i32 {
     );
 
     let text =
-        "regular \x1b[4munderline\x1b[24m \x1b[7mreverse\x1b[27m \x1b[9mstrikethrough\x1b[29m";
+        "reguler \x1b[4munderline\x1b[24m \x1b[7mreverse\x1b[27m \x1b[9mstrikethrough\x1b[29m";
     println!("\x1b[47m{}\x1b[0m", color_text!(text, 30));
     for i in 31..38 {
         println!("{}", color_text!(text, i));

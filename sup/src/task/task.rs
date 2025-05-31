@@ -30,6 +30,7 @@ pub struct TaskControlBlockInner {
     pub user_stack_bottom: VirtAddr,
     pub parent: Option<Weak<TaskControlBlock>>,
     pub children: Vec<Arc<TaskControlBlock>>,
+    pub fd_table: Vec<Option<Arc<dyn File + Send + Sync>>>,
     pub exit_code: i32,
 }
 
@@ -45,6 +46,14 @@ impl TaskControlBlockInner {
     }
     pub fn is_zombie(&self) -> bool {
         self.get_status() == TaskStatus::Zombie
+    }
+    pub fn alloc_fd(&mut self) -> usize {
+        if let Some(fd) = (0..self.fd_table.len()).find(|fd| self.fd_table[*fd].is_none()) {
+            fd
+        } else {
+            self.fd_table.push(None);
+            self.fd_table.len() - 1
+        }
     }
     pub fn new_page_for_stack(&mut self) {
         let new_user_stack_mapped_va = VirtAddr::from(self.user_stack_mapped_va.0 - PAGE_SIZE);
@@ -90,6 +99,7 @@ impl TaskControlBlock {
                     user_stack_bottom: VirtAddr::from(user_sp - USER_STACK_SIZE),
                     parent: None,
                     children: Vec::new(),
+                    fd_table: Vec::new(),
                     exit_code: 0,
                 })
             },
@@ -133,6 +143,7 @@ impl TaskControlBlock {
                     user_stack_bottom: parent_inner.user_stack_bottom,
                     parent: Some(Arc::downgrade(self)),
                     children: Vec::new(),
+                    fd_table: parent_inner.fd_table.clone(),
                     exit_code: 0,
                 })
             },

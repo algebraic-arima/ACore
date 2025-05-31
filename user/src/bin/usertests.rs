@@ -9,6 +9,8 @@ extern crate user_lib;
 
 // item of TESTS : app_name(argv_0), argv_1, argv_2, argv_3, exit_code
 static SUCC_TESTS: &[(&str, &str, &str, &str, i32)] = &[
+    ("filetest_simple\0", "\0", "\0", "\0", 0),
+    ("cat_filea\0", "\0", "\0", "\0", 0),
     ("exit\0", "\0", "\0", "\0", 0),
     ("fantastic_text\0", "\0", "\0", "\0", 0),
     ("forktest_simple\0", "\0", "\0", "\0", 0),
@@ -16,6 +18,7 @@ static SUCC_TESTS: &[(&str, &str, &str, &str, i32)] = &[
     ("forktest2\0", "\0", "\0", "\0", 0),
     ("forktree\0", "\0", "\0", "\0", 0),
     ("hello_world\0", "\0", "\0", "\0", 0),
+    ("huge_write\0", "\0", "\0", "\0", 0),
     ("matrix\0", "\0", "\0", "\0", 0),
     ("sleep_simple\0", "\0", "\0", "\0", 0),
     ("sleep\0", "\0", "\0", "\0", 0),
@@ -87,7 +90,7 @@ pub fn main() -> i32 {
     let err_num = run_tests(FAIL_TESTS);
     if succ_num == SUCC_TESTS.len() as i32 && err_num == FAIL_TESTS.len() as i32 {
         println!(
-            "{} of succeeded apps, {} of failed apps run correctly. \nUsertests passed!",
+            "{} of sueecssed apps, {} of failed apps run correctly. \nUsertests passed!",
             SUCC_TESTS.len(),
             FAIL_TESTS.len()
         );
@@ -95,7 +98,7 @@ pub fn main() -> i32 {
     }
     if succ_num != SUCC_TESTS.len() as i32 {
         println!(
-            "all succeeded app_num is  {} , but only  passed {}",
+            "all successed app_num is  {} , but only  passed {}",
             SUCC_TESTS.len(),
             succ_num
         );

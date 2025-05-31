@@ -21,6 +21,8 @@ mod mm;
 mod task;
 mod timer;
 mod loader;
+mod fs;
+mod drivers;
 
 core::arch::global_asm!(include_str!("link_app.S"));
 

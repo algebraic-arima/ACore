@@ -140,7 +140,7 @@ impl MemorySet {
             ),
             None,
         );
-        println!("mapping physical memory");
+        println!("mapping physical memory (frames)");
         memory_set.push(
             MapArea::new(
                 (ekernel as usize).into(),
@@ -171,6 +171,15 @@ impl MemorySet {
             PhysAddr::from(MTIMECMP).into(),
             PTEFlags::R | PTEFlags::W,
         );
+        println!("mapping memory-mapped registers");
+        for pair in MMIO {
+            memory_set.push(MapArea::new(
+                (*pair).0.into(),
+                ((*pair).0 + (*pair).1).into(),
+                MapType::Identical,
+                MapPermission::R | MapPermission::W,
+            ), None);
+        }
         println!("mapping machine area");
         memory_set.push(
             MapArea::new(
@@ -403,6 +412,10 @@ lazy_static! {
     /// a memory set instance through lazy_static! managing kernel space
     pub static ref KERNEL_SPACE: Arc<UPSafeCell<MemorySet>> =
         Arc::new(unsafe { UPSafeCell::new(MemorySet::new_kernel()) });
+}
+
+pub fn kernel_token() -> usize {
+    KERNEL_SPACE.exclusive_access().token()
 }
 
 #[allow(unused)]
