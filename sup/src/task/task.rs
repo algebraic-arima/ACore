@@ -11,6 +11,8 @@ use crate::trap::{TrapContext, trap_handler};
 use alloc::sync::{Arc, Weak};
 use alloc::vec::Vec;
 use log::warn;
+use alloc::vec;
+use crate::fs::{File, Stdin, Stdout};
 
 pub struct TaskControlBlock {
     // immutable
@@ -99,7 +101,14 @@ impl TaskControlBlock {
                     user_stack_bottom: VirtAddr::from(user_sp - USER_STACK_SIZE),
                     parent: None,
                     children: Vec::new(),
-                    fd_table: Vec::new(),
+                    fd_table: vec![
+                        // 0 -> stdin
+                        Some(Arc::new(Stdin)),
+                        // 1 -> stdout
+                        Some(Arc::new(Stdout)),
+                        // 2 -> stderr
+                        Some(Arc::new(Stdout)),
+                    ],
                     exit_code: 0,
                 })
             },
@@ -129,6 +138,15 @@ impl TaskControlBlock {
         let pid_handle = pid_alloc();
         let kernel_stack = KernelStack::new(&pid_handle);
         let kernel_stack_top = kernel_stack.get_top();
+        // copy fd table
+        let mut new_fd_table: Vec<Option<Arc<dyn File + Send + Sync>>> = Vec::new();
+        for fd in parent_inner.fd_table.iter() {
+            if let Some(file) = fd {
+                new_fd_table.push(Some(file.clone()));
+            } else {
+                new_fd_table.push(None);
+            }
+        }
         let task_control_block = Arc::new(TaskControlBlock {
             pid: pid_handle,
             kernel_stack,
@@ -143,7 +161,7 @@ impl TaskControlBlock {
                     user_stack_bottom: parent_inner.user_stack_bottom,
                     parent: Some(Arc::downgrade(self)),
                     children: Vec::new(),
-                    fd_table: parent_inner.fd_table.clone(),
+                    fd_table: new_fd_table,
                     exit_code: 0,
                 })
             },

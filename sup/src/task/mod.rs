@@ -17,11 +17,9 @@ mod pid;
 mod processor;
 mod manager;
 
-use crate::loader::get_app_data_by_name;
 use crate::println;
 use alloc::sync::Arc;
 use lazy_static::*;
-use processor::{schedule, take_current_task};
 use task::{TaskControlBlock, TaskStatus};
 pub use processor::*;
 pub use manager::*;

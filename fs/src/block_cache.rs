@@ -116,16 +116,13 @@ impl BlockCacheManager {
                 return Arc::clone(cache);
             }
         }
-        if self.queue.len() >= BLOCK_CACHE_SIZE {
-            let mut id_final: Option<usize> = None;
-            for (id, cache) in self.queue.iter() {
-                if Arc::strong_count(&cache) == 1 {
-                    id_final = Some(*id);
-                    break;
-                }
-            }
-            if let Some(idx) = id_final {
-                self.queue.drain(idx..=idx);
+        if self.queue.len() == BLOCK_CACHE_SIZE {
+            let pos = self
+                .queue
+                .iter()
+                .position(|(_, cache)| Arc::strong_count(cache) == 1);
+            if let Some(pos) = pos {
+                self.queue.remove(pos); // 或 drain(pos..=pos)
             } else {
                 panic!("BlockCache Run Out!");
             }
@@ -138,5 +135,3 @@ impl BlockCacheManager {
         cache
     }
 }
-
-

@@ -6,22 +6,20 @@
 extern crate alloc;
 
 use log::info;
-use mm::remap_test;
 
 #[macro_use]
+mod sbi;
 mod sync;
 mod config;
-mod lang_items;
+pub mod lang_items;
 mod logging;
 mod uart;
-mod sbi;
-mod syscall;
-mod trap;
-mod mm;
-mod task;
-mod timer;
-mod loader;
-mod fs;
+pub mod syscall;
+pub mod trap;
+pub mod mm;
+pub mod task;
+pub mod timer;
+pub mod fs;
 mod drivers;
 
 core::arch::global_asm!(include_str!("link_app.S"));
@@ -34,13 +32,12 @@ pub extern "C" fn _start() -> ! {
     sbi::init_uart();
     info!("[kernel] Switched to Supervisor Mode");
     mm::init();
-    remap_test();
-    task::add_initproc();
-    println!("after initproc!");
+    mm::remap_test();
     trap::init();
     trap::enable_timer_interrupt();
     timer::set_next_trigger();
-    loader::list_apps();
+    fs::list_apps();
+    task::add_initproc();
     task::run_tasks();
     panic!("Unreachable in rust_main!");
 }

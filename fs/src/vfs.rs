@@ -335,7 +335,7 @@ impl Inode {
                     DIRENT_SZ,
                 );
                 if dirent.name() == old_name {
-                    println!("{} -> {}", dirent.name(),new_name);
+                    // println!("{} -> {}", dirent.name(),new_name);
                     let new_dirent = DirEntry::new(new_name, dirent.inode_number());
                     disk_inode.write_at(DIRENT_SZ * i, new_dirent.as_bytes(), &self.block_device);
                     flag = true;
@@ -350,8 +350,10 @@ impl Inode {
     pub fn read_at(&self, offset: usize, buf: &mut [u8]) -> usize {
         let _fs = self.fs.lock();
         self.read_disk_inode(|disk_inode| {
-            assert!(disk_inode.is_file());
-            disk_inode.read_at(offset, buf, &self.block_device)
+            // assert!(disk_inode.is_file());
+            let len = disk_inode.read_at(offset, buf, &self.block_device);
+            assert!(len <= buf.len());
+            len
         })
     }
     /// Write data to current inode

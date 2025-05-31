@@ -79,6 +79,9 @@ fn fs_pack() -> std::io::Result<()> {
         let inode = root_inode.create(app.as_str()).unwrap();
         // write data to fs
         inode.write_at(0, all_data.as_slice());
+        // let i = inode.read_at(0, &mut [0u8; 1024]);
+        // println!("Test Read {} bytes from app file: {}", i, app);
+        println!("Created app file: {}, bytes: {}", app, all_data.len());
     }
     // list apps
     // for app in root_inode.ls() {
@@ -103,6 +106,9 @@ fn fs_test() -> std::io::Result<()> {
     let fs = FileSystem::open(block_file.clone());
     println!("Testing creating files/dirs in root...");
     let root_inode = FileSystem::root_inode(&fs);
+    for name in root_inode.ls() {
+        println!("/: {}", name);
+    }
     root_inode.create("filea");
     root_inode.create("fileb");
     root_inode.mkdir("usr");

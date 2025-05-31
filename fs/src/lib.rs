@@ -1,3 +1,4 @@
+#![no_std]
 extern crate alloc;
 extern crate lru;
 mod bitmap;

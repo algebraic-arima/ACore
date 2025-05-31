@@ -7,6 +7,7 @@ edition = "2024"
 
 [dependencies]
 log = "0.4"
+bitflags = "1.2.1"
 riscv = { git = "https://github.com/rcore-os/riscv", features = ["inline-asm"] }
 
 
