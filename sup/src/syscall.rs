@@ -34,7 +34,7 @@ use crate::sbi::scan;
 use crate::timer::get_time_ms;
 use crate::{print, println};
 use crate::task::*;
-use crate::fs::{open_file, OpenFlags};
+use crate::fs::{open_file, open_bin, OpenFlags};
 
 const FD_STDIN: usize = 0;
 const FD_STDOUT: usize = 1;
@@ -143,7 +143,7 @@ pub fn sys_exec(path: *const u8) -> isize {
     let token = current_user_token();
     let path = translated_str(token, path);
     // println!("\nbefore open path {}",path);
-    if let Some(app_inode) = open_file(path.as_str(), OpenFlags::RDONLY) {
+    if let Some(app_inode) = open_bin(path.as_str()) {
         // println!("\npath {}",path);
         let all_data = app_inode.read_all();
         // println!("\nafter readall {}",path);

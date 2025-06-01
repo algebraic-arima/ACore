@@ -5,9 +5,9 @@
 //! `UPSafeCell<OSInodeInner>` -> `OSInode`: for static `ROOT_INODE`,we
 //! need to wrap `OSInodeInner` into `UPSafeCell`
 use super::File;
-use crate::{drivers::BLOCK_DEVICE, fs::inode};
 use crate::mm::UserBuffer;
 use crate::sync::UPSafeCell;
+use crate::{drivers::BLOCK_DEVICE, fs::inode};
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use bitflags::*;
@@ -66,8 +66,11 @@ lazy_static! {
 /// List all files in the filesystems
 pub fn list_apps() {
     println!("/**** APPS ****");
-    for app in ROOT_INODE.ls() {
-        println!("{}", app);
+    let bin_inode = ROOT_INODE
+        .find("bin")
+        .unwrap_or_else(|| ROOT_INODE.create("bin").expect("No /bin directory"));
+    for app in bin_inode.ls() {
+        println!("/bin/{}", app);
     }
     println!("**************/");
 }
@@ -126,6 +129,15 @@ pub fn open_file(name: &str, flags: OpenFlags) -> Option<Arc<OSInode>> {
             Arc::new(OSInode::new(readable, writable, inode))
         })
     }
+}
+
+///Open file with flags
+pub fn open_bin(name: &str) -> Option<Arc<OSInode>> {
+    let (readable, writable) = OpenFlags::RDONLY.read_write();
+    // println!("\nopen nocreate file: {}", name);
+    ROOT_INODE.find_bin(name).map(|inode| {
+        Arc::new(OSInode::new(readable, writable, inode))
+    })
 }
 
 impl File for OSInode {

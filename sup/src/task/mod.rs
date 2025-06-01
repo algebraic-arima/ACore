@@ -23,13 +23,13 @@ use lazy_static::*;
 use task::{TaskControlBlock, TaskStatus};
 pub use processor::*;
 pub use manager::*;
-use crate::fs::{open_file, OpenFlags};
+use crate::fs::{open_file, open_bin, OpenFlags};
 
 pub use context::TaskContext;
 
 lazy_static! {
     pub static ref INITPROC: Arc<TaskControlBlock> = Arc::new({
-        let inode = open_file("initproc", OpenFlags::RDONLY).unwrap();
+        let inode = open_bin("initproc").unwrap();
         let v = inode.read_all();
         TaskControlBlock::new(v.as_slice())
     });

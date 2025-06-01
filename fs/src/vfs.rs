@@ -87,9 +87,10 @@ impl Inode {
         None
     }
 
-    pub fn find(&self, name: &str) -> Option<Arc<Inode>> {
+    fn _find(&self, name: &str) -> Option<Arc<Inode>> {
         let fs = self.fs.lock();
         self.read_disk_inode(|disk_inode: &DiskInode| {
+            assert!(disk_inode.is_dir());
             let inode_id = self.find_inode_id(name, disk_inode);
             if let Some(inode_id) = inode_id {
                 let (block_id, block_offset) = fs.get_disk_inode_pos(inode_id);
@@ -103,6 +104,42 @@ impl Inode {
                 None
             }
         })
+    }
+
+    pub fn find_bin(&self, name: &str) -> Option<Arc<Inode>> {
+        // find a file in bin folder of current directory
+        if name.is_empty() {
+            return None;
+        }
+        let bin_inode = self._find("bin")?;
+        if !bin_inode.read_disk_inode(|disk_inode| disk_inode.is_dir()) {
+            return None; // bin is not a directory
+        }
+        bin_inode._find(name)
+    }
+
+    pub fn find(&self, path: &str) -> Option<Arc<Inode>> {
+        // find a file or directory in current directory
+        if path.is_empty() {
+            return None;
+        }
+        let mut cur_inode = Arc::new(Self::new(
+            self.block_id as u32,
+            self.block_offset,
+            Arc::clone(&self.fs),
+            Arc::clone(&self.block_device),
+        ));
+        for name in path.split('/') {
+            if name.is_empty() {
+                return None; // invalid absolute path
+            }
+            if let Some(next_inode) = cur_inode._find(name) {
+                cur_inode = next_inode;
+            } else {
+                return None; // not found
+            }
+        }
+        Some(cur_inode)
     }
 
     pub fn ls(&self) -> Vec<String> {
@@ -227,7 +264,7 @@ impl Inode {
             assert!(disk_inode.is_dir());
             let new_size = 2 * DIRENT_SZ; // . and ..
             // increase size
-            self.increase_size(new_size as u32, disk_inode, &mut fs);
+            self.increase_size(new_size as u32, disk_inode, &mut fs); // no matter what Inode calls increase
             // . -> self
             let dirent = DirEntry::new(".", new_inode_id);
             disk_inode.write_at(0, dirent.as_bytes(), &self.block_device);
@@ -335,7 +372,6 @@ impl Inode {
                     DIRENT_SZ,
                 );
                 if dirent.name() == old_name {
-                    // println!("{} -> {}", dirent.name(),new_name);
                     let new_dirent = DirEntry::new(new_name, dirent.inode_number());
                     disk_inode.write_at(DIRENT_SZ * i, new_dirent.as_bytes(), &self.block_device);
                     flag = true;

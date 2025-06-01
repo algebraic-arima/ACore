@@ -70,13 +70,15 @@ fn fs_pack() -> std::io::Result<()> {
             name_with_ext
         })
         .collect();
+    root_inode.mkdir("bin");
+    let bin_inode = root_inode.find("bin").unwrap();
     for app in apps {
         // load app data from host file system
         let mut host_file = File::open(format!("{}{}", target_path, app)).unwrap();
         let mut all_data: Vec<u8> = Vec::new();
         host_file.read_to_end(&mut all_data).unwrap();
         // create a file in fs
-        let inode = root_inode.create(app.as_str()).unwrap();
+        let inode = bin_inode.create(app.as_str()).unwrap();
         // write data to fs
         inode.write_at(0, all_data.as_slice());
         // let i = inode.read_at(0, &mut [0u8; 1024]);
@@ -84,8 +86,8 @@ fn fs_pack() -> std::io::Result<()> {
         println!("Created app file: {}, bytes: {}", app, all_data.len());
     }
     // list apps
-    // for app in root_inode.ls() {
-    //     println!("{}", app);
+    // for app in bin_inode.ls() {
+    //     println!("/bin: {}", app);
     // }
     Ok(())
 }
@@ -167,12 +169,26 @@ fn fs_test() -> std::io::Result<()> {
     assert!(root_inode.find("user").is_some(), "user should exist!");
     root_inode.rename("user", "usr");
 
-    // println!("Testing absolute path finding...");
-    // let filed_inode = usr_inode.find("filed").unwrap();
-    // let filed_inode_tmp = FileSystem::abs_path_to_inode(&fs, "/usr/filed").unwrap();
-    // assert!(filed_inode_tmp.is_file(), "filed should be a file!");
-    // assert!(filed_inode_tmp.get_block_id() == filed_inode.get_block_id(), "filed inode should match!");
-    // assert!(filed_inode_tmp.get_block_offset() == filed_inode.get_block_offset(), "filed inode offset should match!");
+    println!("Testing relative path find...");
+    usr_inode.mkdir("venillalemon");
+    usr_inode.mkdir("yuchuan");
+    usr_inode.mkdir("Czar");
+    usr_inode.mkdir("modist");
+    let venillalemon_inode = usr_inode.find("venillalemon").unwrap();
+    let yuchuan_inode = usr_inode.find("yuchuan").unwrap();
+    let modist_inode = usr_inode.find("modist").unwrap();
+    for name in usr_inode.ls() {
+        println!("/usr: {}", name);
+    }
+    for name in venillalemon_inode.ls() {
+        println!("/usr/venillalemon: {}", name);
+    }
+    let test_usr_inode = venillalemon_inode.find("../../usr").unwrap();
+    for name in test_usr_inode.ls() {
+        println!("/usr: {}", name);
+    }
+    assert!(test_usr_inode.find("filed").is_some(), "filed should exist in /usr!");
+    assert!(test_usr_inode.find("venillalemon").is_some(), "venillalemon should exist in /usr!");
 
     println!("Testing writing and reading filea...");
     let filea = par_node.find("filea").unwrap();
