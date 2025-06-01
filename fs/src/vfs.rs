@@ -106,20 +106,20 @@ impl Inode {
         })
     }
 
-    pub fn find_bin(&self, name: &str) -> Option<Arc<Inode>> {
+    pub fn find_elf(&self, name: &str) -> Option<Arc<Inode>> {
         // find a file in bin folder of current directory
         if name.is_empty() {
             return None;
         }
-        let bin_inode = self._find("bin")?;
-        if !bin_inode.read_disk_inode(|disk_inode| disk_inode.is_dir()) {
+        let elf_inode = self._find("bin")?;
+        if !elf_inode.read_disk_inode(|disk_inode| disk_inode.is_dir()) {
             return None; // bin is not a directory
         }
-        bin_inode._find(name)
+        elf_inode._find(name)
     }
 
     pub fn find(&self, path: &str) -> Option<Arc<Inode>> {
-        // find a file or directory in current directory
+        // find a file or directory in current directory, relative
         if path.is_empty() {
             return None;
         }
@@ -211,8 +211,44 @@ impl Inode {
         // release fs lock automatically by compiler
     }
 
+    pub fn mkdir(&self, path: &str) -> Option<Arc<Inode>> {
+        // create a new dir, but every dir should exist before the last one
+        if path.is_empty() {
+            return None;
+        }
+        let mut cur_inode = Arc::new(Self::new(
+            self.block_id as u32,
+            self.block_offset,
+            Arc::clone(&self.fs),
+            Arc::clone(&self.block_device),
+        ));
+        let len = path.split('/').count();
+        for (i, name) in path.split('/').enumerate() {
+            if name.is_empty() {
+                return None; // invalid absolute path
+            }
+            if i == len - 1 {
+                if let Some(new_inode) = cur_inode._mkdir(name) {
+                    return Some(new_inode); // create the new directory
+                } else {
+                    return None; // dir not created
+                }
+            } else {
+                if let Some(next_inode) = cur_inode._find(name) {
+                    cur_inode = next_inode;
+                } else {
+                    return None; // dir not found
+                }
+            }
+        }
+        Some(cur_inode)
+    }
+
     /// Create a new directory
-    pub fn mkdir(&self, name: &str) -> Option<Arc<Inode>> {
+    fn _mkdir(&self, name: &str) -> Option<Arc<Inode>> {
+        if name.is_empty() {
+            return None; // invalid directory name
+        }
         let mut fs = self.fs.lock();
         let op = |cur_dir_inode: &DiskInode| {
             // assert it is a directory
@@ -277,14 +313,45 @@ impl Inode {
         Some(new_inode)
     }
 
-    pub fn remove(&self, name: &str) -> bool {
-        // remove a file or directory
-        let mut fs = self.fs.lock();
-        self._remove(name, &mut fs)
+    /// remove a file or directory, relative path
+    pub fn remove(&self, path: &str) -> bool {
+        // remove a file or directory in current directory, relative
+        if path.is_empty() {
+            return false;
+        }
+        let mut cur_inode = Arc::new(Self::new(
+            self.block_id as u32,
+            self.block_offset,
+            Arc::clone(&self.fs),
+            Arc::clone(&self.block_device),
+        ));
+        let len = path.split('/').count();
+        for (i, name) in path.split('/').enumerate() {
+            if name.is_empty() {
+                return false; // invalid absolute path
+            }
+            if i == len - 1 {
+                return cur_inode._remove(name); // remove the file or directory
+            } else {
+                if let Some(next_inode) = cur_inode._find(name) {
+                    cur_inode = next_inode;
+                } else {
+                    return false; // dir not found
+                }
+            }
+        }
+        false
     }
 
-    /// remove a file or directory
-    fn _remove(&self, name: &str, fs: &mut MutexGuard<'_, FileSystem>) -> bool {
+    /// remove a file or directory, single find
+    fn _remove(&self, name: &str) -> bool {
+        // remove a file or directory
+        let mut fs = self.fs.lock();
+        self.__remove(name, &mut fs)
+    }
+
+    /// remove a file or directory, recursively
+    fn __remove(&self, name: &str, fs: &mut MutexGuard<'_, FileSystem>) -> bool {
         let mut inode_id = None;
         let mut disk_inode = None;
         self.modify_disk_inode(|cur_dir_inode| {
@@ -328,7 +395,7 @@ impl Inode {
                         if dirent.is_empty() {
                             continue;
                         }
-                        dir_inode._remove(dirent.name(), fs);
+                        dir_inode.__remove(dirent.name(), fs);
                     }
                 }
                 // dealloc data blocks possessed by the file/dir inode

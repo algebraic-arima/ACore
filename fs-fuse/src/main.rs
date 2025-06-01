@@ -118,7 +118,14 @@ fn fs_test() -> std::io::Result<()> {
         println!("/: {}", name);
     }
     println!("Testing removing fileb...");
+    let fileb_inode = root_inode.find("fileb").unwrap();
+    fileb_inode.write_at(0, b"Hello, fileb!");
+    let mut buffer = [0u8; 512];
     root_inode.remove("fileb");
+    let len = fileb_inode.read_at(0, &mut buffer);
+    assert_eq!(len, 13, "fileb data remains!");
+    assert!(root_inode.find("fileb").is_none(), "fileb should not exist!");
+
     for name in root_inode.ls() {
         println!("/: {}", name);
     }
@@ -170,13 +177,20 @@ fn fs_test() -> std::io::Result<()> {
     root_inode.rename("user", "usr");
 
     println!("Testing relative path find...");
-    usr_inode.mkdir("venillalemon");
-    usr_inode.mkdir("yuchuan");
+    let venillalemon_inode = usr_inode.mkdir("venillalemon").unwrap();
+    let yuchuan_none_inode = usr_inode.mkdir("usr/yuchuan");
+    assert!(yuchuan_none_inode.is_none(), "/usr/usr/yuchuan should not exist!");
+    root_inode.mkdir("usr/yuchuan");
+    let yuchuan_inode = usr_inode.find("yuchuan");
+    assert!(yuchuan_inode.is_some(), "/usr/yuchuan should exist!");
+    let yuchuan_inode = yuchuan_inode.unwrap();
     usr_inode.mkdir("Czar");
-    usr_inode.mkdir("modist");
-    let venillalemon_inode = usr_inode.find("venillalemon").unwrap();
-    let yuchuan_inode = usr_inode.find("yuchuan").unwrap();
-    let modist_inode = usr_inode.find("modist").unwrap();
+    let modist_inode = root_inode.mkdir("usr/modist").unwrap();
+    for name in usr_inode.ls() {
+        println!("/usr: {}", name);
+    }
+    let venillalemon_test_inode = usr_inode.find("venillalemon");
+    assert!(venillalemon_test_inode.is_some(), "/usr/venillalemon should exist!");
     for name in usr_inode.ls() {
         println!("/usr: {}", name);
     }
@@ -231,6 +245,44 @@ fn fs_test() -> std::io::Result<()> {
     random_str_test(400 * BLOCK_SZ);
     random_str_test(1000 * BLOCK_SZ);
     random_str_test(2000 * BLOCK_SZ);
+
+    println!("Testing removing usr...");
+    usr_inode.create("profile");
+    println!("After creating profile:");
+    for name in usr_inode.ls() {
+        println!("/usr: {}", name);
+    }
+    let tmp = usr_inode.find("profile");
+    assert!(tmp.is_some(), "profile should exist in /usr!");
+    let profile_inode = tmp.unwrap();
+    profile_inode.write_at(0, b"Hello, profile!");
+    let mut buffer = [0u8; 512];
+    let len = profile_inode.read_at(0, &mut buffer);
+    assert_eq!(
+        core::str::from_utf8(&buffer[..len]).unwrap(),
+        "Hello, profile!",
+        "Read content should match!"
+    );
+    let be = root_inode.remove("usr/modist");
+    println!("After removing usr/modist under root...");
+    for name in usr_inode.ls() {
+        println!("/usr: {}", name);
+    }
+    assert!(be, "Removing usr/modist should succeed!");
+    let b = root_inode.remove("usr");
+    assert!(b, "Removing usr should succeed!");
+    for name in root_inode.ls() {
+        println!("/: {}", name);
+    }
+    for name in usr_inode.ls() {
+        println!("/usr: {}", name);
+    }
+    assert!(root_inode.find("usr").is_none(), "usr should be removed!");
+    assert!(root_inode.find("usr/profile").is_none(), "profile should be removed with usr!");
+    let len = profile_inode.read_at(0, &mut buffer);
+    assert_eq!(len, 15, "profile data remains!");
+
+    println!("All tests passed!");
 
     Ok(())
 }

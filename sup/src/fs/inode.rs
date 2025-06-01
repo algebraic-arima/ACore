@@ -135,9 +135,19 @@ pub fn open_file(name: &str, flags: OpenFlags) -> Option<Arc<OSInode>> {
 pub fn open_bin(name: &str) -> Option<Arc<OSInode>> {
     let (readable, writable) = OpenFlags::RDONLY.read_write();
     // println!("\nopen nocreate file: {}", name);
-    ROOT_INODE.find_bin(name).map(|inode| {
-        Arc::new(OSInode::new(readable, writable, inode))
-    })
+    ROOT_INODE
+        .find_elf(name)
+        .map(|inode| Arc::new(OSInode::new(readable, writable, inode)))
+}
+
+pub fn mkdir_at_root(name: &str) -> Option<Arc<OSInode>> {
+    ROOT_INODE
+        .mkdir(name)
+        .map(|inode| Arc::new(OSInode::new(true, false, inode)))
+}
+
+pub fn remove_at_root(name: &str) -> bool {
+    ROOT_INODE.remove(name)
 }
 
 impl File for OSInode {

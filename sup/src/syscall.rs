@@ -29,12 +29,12 @@ pub fn syscall(syscall_id: usize, args: [usize; 3]) -> isize {
 
 use alloc::sync::Arc;
 
-use crate::mm::{translated_byte_buffer, translated_refmut, translated_str, UserBuffer};
+use crate::fs::{OpenFlags, mkdir_at_root, open_bin, open_file, remove_at_root};
+use crate::mm::{UserBuffer, translated_byte_buffer, translated_refmut, translated_str};
 use crate::sbi::scan;
+use crate::task::*;
 use crate::timer::get_time_ms;
 use crate::{print, println};
-use crate::task::*;
-use crate::fs::{open_file, open_bin, OpenFlags};
 
 const FD_STDIN: usize = 0;
 const FD_STDOUT: usize = 1;
@@ -106,6 +106,21 @@ pub fn sys_close(fd: usize) -> isize {
     0
 }
 
+pub fn sys_mkdir(path: *const u8) -> isize {
+    let token = current_user_token();
+    let path = translated_str(token, path);
+    if let Some(inode) = mkdir_at_root(path.as_str()) {
+        0
+    } else {
+        -1
+    }
+}
+
+pub fn sys_remove(path: *const u8) -> isize {
+    let token = current_user_token();
+    let path = translated_str(token, path);
+    if remove_at_root(path.as_str()) { 0 } else { -1 }
+}
 
 pub fn sys_exit(exit_code: i32) -> ! {
     exit_current_and_run_next(exit_code);
