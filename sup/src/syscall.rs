@@ -1,3 +1,5 @@
+const SYSCALL_MKDIR: usize = 34; // use mkdir to create dirs
+const SYSCALL_UNLINK: usize = 35; // use unlink to remove files/dirs
 const SYSCALL_OPEN: usize = 56;
 const SYSCALL_CLOSE: usize = 57;
 const SYSCALL_READ: usize = 63;
@@ -12,6 +14,8 @@ const SYSCALL_WAITPID: usize = 260;
 
 pub fn syscall(syscall_id: usize, args: [usize; 3]) -> isize {
     match syscall_id {
+        SYSCALL_MKDIR => sys_mkdir(args[0] as *const u8),
+        SYSCALL_UNLINK => sys_remove(args[0] as *const u8),
         SYSCALL_OPEN => sys_open(args[0] as *const u8, args[1] as u32),
         SYSCALL_CLOSE => sys_close(args[0]),
         SYSCALL_READ => sys_read(args[0], args[1] as *const u8, args[2]),
@@ -28,7 +32,7 @@ pub fn syscall(syscall_id: usize, args: [usize; 3]) -> isize {
 }
 
 use alloc::sync::Arc;
-
+use crate::alloc::string::ToString;
 use crate::fs::{OpenFlags, mkdir_at_root, open_bin, open_file, remove_at_root};
 use crate::mm::{UserBuffer, translated_byte_buffer, translated_refmut, translated_str};
 use crate::sbi::scan;

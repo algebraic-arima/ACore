@@ -1,5 +1,7 @@
 use core::arch::asm;
 
+const SYSCALL_MKDIR: usize = 34;
+const SYSCALL_UNLINK: usize = 35; // use unlink to remove files/dirs
 const SYSCALL_OPEN: usize = 56;
 const SYSCALL_CLOSE: usize = 57;
 const SYSCALL_READ: usize = 63;
@@ -43,6 +45,14 @@ pub fn sys_read(fd: usize, buffer: &mut [u8]) -> isize {
 
 pub fn sys_write(fd: usize, buffer: &[u8]) -> isize {
     syscall(SYSCALL_WRITE, [fd, buffer.as_ptr() as usize, buffer.len()])
+}
+
+pub fn sys_mkdir(path: &str) -> isize {
+    syscall(SYSCALL_MKDIR, [path.as_ptr() as usize, 0, 0])
+}
+
+pub fn sys_remove(path: &str) -> isize {
+    syscall(SYSCALL_UNLINK, [path.as_ptr() as usize, 0, 0])
 }
 
 pub fn sys_exit(exit_code: i32) -> ! {

@@ -163,7 +163,37 @@ impl Inode {
         })
     }
 
-    pub fn create(&self, name: &str) -> Option<Arc<Inode>> {
+    /// create a new file, but every dir should exist before the last one
+    pub fn create(&self, path: &str) -> Option<Arc<Inode>> {
+        // create a new file, but every dir should exist before the last one
+        if path.is_empty() {
+            return None;
+        }
+        let mut cur_inode = Arc::new(Self::new(
+            self.block_id as u32,
+            self.block_offset,
+            Arc::clone(&self.fs),
+            Arc::clone(&self.block_device),
+        ));
+        let len = path.split('/').count();
+        for (i, name) in path.split('/').enumerate() {
+            if name.is_empty() {
+                return None; // invalid absolute path
+            }
+            if i == len - 1 {
+                return cur_inode._create(name); // create the new file
+            } else {
+                if let Some(next_inode) = cur_inode._find(name) {
+                    cur_inode = next_inode;
+                } else {
+                    return None; // dir not found
+                }
+            }
+        }
+        None
+    }
+
+    fn _create(&self, name: &str) -> Option<Arc<Inode>> {
         let mut fs = self.fs.lock();
         let op = |cur_dir_inode: &DiskInode| {
             // assert it is a directory

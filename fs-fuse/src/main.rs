@@ -282,6 +282,27 @@ fn fs_test() -> std::io::Result<()> {
     let len = profile_inode.read_at(0, &mut buffer);
     assert_eq!(len, 15, "profile data remains!");
 
+    let test_str = "Hello, filea in tmp!";
+    let tmp_name = "tmp";
+    let tmp_inode = root_inode.mkdir(tmp_name).unwrap();
+    let path = "tmp/filea";
+    let fa = root_inode.create(path).unwrap();
+    fa.write_at(0, test_str.as_bytes());
+    let mut buffer = [0u8; 100];
+    let len = fa.read_at(0, &mut buffer);
+    assert_eq!(
+        core::str::from_utf8(&buffer[..len]).unwrap(),
+        "Hello, filea in tmp!",
+        "Read content should match!"
+    );
+    for name in root_inode.ls() {
+        println!("/: {}", name);
+    }
+    let tmp_tmp_inode = root_inode.find("tmp").unwrap();
+    for name in tmp_inode.ls() {
+        println!("/tmp: {}", name);
+    }
+
     println!("All tests passed!");
 
     Ok(())

@@ -48,6 +48,12 @@ pub fn read(fd: usize, buf: &mut [u8]) -> isize {
 pub fn write(fd: usize, buf: &[u8]) -> isize {
     sys_write(fd, buf)
 }
+pub fn mkdir(path: &str) -> isize {
+    sys_mkdir(path)
+}
+pub fn remove(path: &str) -> isize {
+    sys_remove(path)
+}
 pub fn exit(exit_code: i32) -> ! {
     sys_exit(exit_code);
 }

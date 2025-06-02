@@ -390,6 +390,7 @@ impl DirEntry {
     pub fn new(name: &str, inode_number: u32) -> Self {
         let mut bytes = [0u8; NAME_LENGTH_LIMIT + 1];
         bytes[..name.len()].copy_from_slice(name.as_bytes());
+        bytes[name.len()..NAME_LENGTH_LIMIT + 1].copy_from_slice(&[0u8; NAME_LENGTH_LIMIT + 1][..NAME_LENGTH_LIMIT + 1 - name.len()]); // null-terminate the string
         Self {
             name: bytes,
             inode_number,

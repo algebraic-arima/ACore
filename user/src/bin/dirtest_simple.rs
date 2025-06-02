@@ -4,12 +4,14 @@
 #[macro_use]
 extern crate user_lib;
 
-use user_lib::{close, open, read, remove, write, OpenFlags};
+use user_lib::{OpenFlags, close, open, read, write, mkdir, remove};
 
 #[unsafe(no_mangle)]
 pub fn main() -> i32 {
     let test_str = "Hello, world!";
-    let filea = "filea\0";
+    let dir_name = "tmp\0";
+    assert!(mkdir(dir_name) == 0, "Failed to create directory");
+    let filea = "tmp/filea\0";
     let fd = open(filea, OpenFlags::CREATE | OpenFlags::WRONLY);
     assert!(fd > 0);
     let fd = fd as usize;
@@ -23,9 +25,9 @@ pub fn main() -> i32 {
     let read_len = read(fd, &mut buffer) as usize;
     close(fd);
 
-    assert!(remove(filea) == 0, "Failed to remove file");
-
     assert_eq!(test_str, core::str::from_utf8(&buffer[..read_len]).unwrap(),);
-    println!("file_test passed!");
+    assert!(remove(dir_name) == 0, "Failed to remove directory");
+
+    println!("dir_test passed!");
     0
 }
