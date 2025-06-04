@@ -1,9 +1,11 @@
 use core::arch::asm;
 
 const SYSCALL_MKDIR: usize = 34;
-const SYSCALL_UNLINK: usize = 35; // use unlink to remove files/dirs
+const SYSCALL_UNLINK: usize = 35; // use unlink to remove files/dirs recursively
+const SYSCALL_RENAME: usize = 38;
 const SYSCALL_OPEN: usize = 56;
 const SYSCALL_CLOSE: usize = 57;
+const SYSCALL_PIPE: usize = 59;
 const SYSCALL_READ: usize = 63;
 const SYSCALL_WRITE: usize = 64;
 const SYSCALL_EXIT: usize = 93;
@@ -53,6 +55,17 @@ pub fn sys_mkdir(path: &str) -> isize {
 
 pub fn sys_remove(path: &str) -> isize {
     syscall(SYSCALL_UNLINK, [path.as_ptr() as usize, 0, 0])
+}
+
+pub fn sys_rename(old_path: &str, new_path: &str) -> isize {
+    syscall(
+        SYSCALL_RENAME,
+        [old_path.as_ptr() as usize, new_path.as_ptr() as usize, 0],
+    )
+}
+
+pub fn sys_pipe(pipe: &mut [usize]) -> isize {
+    syscall(SYSCALL_PIPE, [pipe.as_mut_ptr() as usize, 0, 0])
 }
 
 pub fn sys_exit(exit_code: i32) -> ! {

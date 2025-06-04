@@ -1,7 +1,9 @@
 const SYSCALL_MKDIR: usize = 34; // use mkdir to create dirs
 const SYSCALL_UNLINK: usize = 35; // use unlink to remove files/dirs
+const SYSCALL_RENAME: usize = 38; // use rename to rename files/dirs
 const SYSCALL_OPEN: usize = 56;
 const SYSCALL_CLOSE: usize = 57;
+const SYSCALL_PIPE: usize = 59;
 const SYSCALL_READ: usize = 63;
 const SYSCALL_WRITE: usize = 64;
 const SYSCALL_EXIT: usize = 93;
@@ -16,8 +18,10 @@ pub fn syscall(syscall_id: usize, args: [usize; 3]) -> isize {
     match syscall_id {
         SYSCALL_MKDIR => sys_mkdir(args[0] as *const u8),
         SYSCALL_UNLINK => sys_remove(args[0] as *const u8),
+        SYSCALL_RENAME => sys_rename(args[0] as *const u8, args[1] as *const u8),
         SYSCALL_OPEN => sys_open(args[0] as *const u8, args[1] as u32),
         SYSCALL_CLOSE => sys_close(args[0]),
+        SYSCALL_PIPE => sys_pipe(args[0] as *mut usize),
         SYSCALL_READ => sys_read(args[0], args[1] as *const u8, args[2]),
         SYSCALL_WRITE => sys_write(args[0], args[1] as *const u8, args[2]),
         SYSCALL_EXIT => sys_exit(args[0] as i32),
@@ -33,7 +37,7 @@ pub fn syscall(syscall_id: usize, args: [usize; 3]) -> isize {
 
 use alloc::sync::Arc;
 use crate::alloc::string::ToString;
-use crate::fs::{OpenFlags, mkdir_at_root, open_bin, open_file, remove_at_root};
+use crate::fs::{OpenFlags, mkdir_at_root, open_bin, open_file, remove_at_root, rename_at_root, make_pipe};
 use crate::mm::{UserBuffer, translated_byte_buffer, translated_refmut, translated_str};
 use crate::sbi::scan;
 use crate::task::*;
@@ -124,6 +128,27 @@ pub fn sys_remove(path: *const u8) -> isize {
     let token = current_user_token();
     let path = translated_str(token, path);
     if remove_at_root(path.as_str()) { 0 } else { -1 }
+}
+
+pub fn sys_rename(path: *const u8, new_name: *const u8) -> isize {
+    let token = current_user_token();
+    let path = translated_str(token, path);
+    let new_name = translated_str(token, new_name);
+    if rename_at_root(path.as_str(), new_name.as_str()) { 0 } else { -1 }
+}
+
+pub fn sys_pipe(pipe: *mut usize) -> isize {
+    let task = current_task().unwrap();
+    let token = current_user_token();
+    let mut inner = task.inner_exclusive_access();
+    let (pipe_read, pipe_write) = make_pipe();
+    let read_fd = inner.alloc_fd();
+    inner.fd_table[read_fd] = Some(pipe_read);
+    let write_fd = inner.alloc_fd();
+    inner.fd_table[write_fd] = Some(pipe_write);
+    *translated_refmut(token, pipe) = read_fd;
+    *translated_refmut(token, unsafe { pipe.add(1) }) = write_fd;
+    0
 }
 
 pub fn sys_exit(exit_code: i32) -> ! {

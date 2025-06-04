@@ -176,6 +176,13 @@ fn fs_test() -> std::io::Result<()> {
     assert!(root_inode.find("user").is_some(), "user should exist!");
     root_inode.rename("user", "usr");
 
+    root_inode.rename("usr/filed", "filec");
+    for name in usr_inode.ls() {
+        println!("/usr: {}", name);
+    }
+    assert!(usr_inode.find("filed").is_none(), "filed should be renamed to filed!");
+    assert!(usr_inode.find("filec").is_some(), "filec should exist!");
+
     println!("Testing relative path find...");
     let venillalemon_inode = usr_inode.mkdir("venillalemon").unwrap();
     let yuchuan_none_inode = usr_inode.mkdir("usr/yuchuan");
@@ -201,7 +208,7 @@ fn fs_test() -> std::io::Result<()> {
     for name in test_usr_inode.ls() {
         println!("/usr: {}", name);
     }
-    assert!(test_usr_inode.find("filed").is_some(), "filed should exist in /usr!");
+    assert!(test_usr_inode.find("filec").is_some(), "filec should exist in /usr!");
     assert!(test_usr_inode.find("venillalemon").is_some(), "venillalemon should exist in /usr!");
 
     println!("Testing writing and reading filea...");

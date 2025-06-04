@@ -6,8 +6,8 @@
 pub mod console;
 mod lang_items;
 mod mm;
-mod syscall;
 mod sync;
+mod syscall;
 
 #[unsafe(no_mangle)]
 #[unsafe(link_section = ".text.entry")]
@@ -33,7 +33,6 @@ bitflags! {
     }
 }
 
-
 use syscall::*;
 
 pub fn open(path: &str, flags: OpenFlags) -> isize {
@@ -51,8 +50,14 @@ pub fn write(fd: usize, buf: &[u8]) -> isize {
 pub fn mkdir(path: &str) -> isize {
     sys_mkdir(path)
 }
+pub fn rename(old_path: &str, new_path: &str) -> isize {
+    sys_rename(old_path, new_path)
+}
 pub fn remove(path: &str) -> isize {
     sys_remove(path)
+}
+pub fn pipe(pipe_fd: &mut [usize]) -> isize {
+    sys_pipe(pipe_fd)
 }
 pub fn exit(exit_code: i32) -> ! {
     sys_exit(exit_code);

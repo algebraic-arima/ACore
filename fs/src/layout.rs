@@ -407,6 +407,7 @@ impl DirEntry {
 
     pub fn name(&self) -> &str {
         let len = (0usize..).find(|i| self.name[*i] == 0).unwrap();
+        // filter the tracking zero
         core::str::from_utf8(&self.name[..len]).unwrap()
     }
 

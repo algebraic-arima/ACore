@@ -150,6 +150,10 @@ pub fn remove_at_root(name: &str) -> bool {
     ROOT_INODE.remove(name)
 }
 
+pub fn rename_at_root(path: &str, new_name: &str) -> bool {
+    ROOT_INODE.rename(path, new_name)
+}
+
 impl File for OSInode {
     fn readable(&self) -> bool {
         self.readable

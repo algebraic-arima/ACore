@@ -443,8 +443,43 @@ impl Inode {
         }
     }
 
-    /// rename a file or directory
-    pub fn rename(&self, old_name: &str, new_name: &str) -> bool {
+    pub fn rename(&self, path: &str, new_name: &str) -> bool {
+        // rename a file or directory in current directory, relative
+        if path.is_empty() || new_name.is_empty() {
+            return false; // invalid name
+        }
+        let mut cur_inode = Arc::new(Self::new(
+            self.block_id as u32,
+            self.block_offset,
+            Arc::clone(&self.fs),
+            Arc::clone(&self.block_device),
+        ));
+        let len = path.split('/').count();
+        for (i, name) in path.split('/').enumerate() {
+            if name.is_empty() {
+                return false; // invalid absolute path
+            }
+            if i == len - 1 {
+                return cur_inode._rename(name, new_name); // remove the file or directory
+            } else {
+                if let Some(next_inode) = cur_inode._find(name) {
+                    cur_inode = next_inode;
+                } else {
+                    return false; // dir not found
+                }
+            }
+        }
+        false
+    }
+
+    /// rename a file or directory, relative path
+    pub fn _rename(&self, old_name: &str, new_name: &str) -> bool {
+        if old_name.is_empty() || new_name.is_empty() {
+            return false; // invalid name
+        }
+        if old_name == new_name {
+            return true; // no need to rename
+        }
         let _fs = self.fs.lock();
         if self
             .read_disk_inode(|cur_dir_inode: &DiskInode| {
