@@ -6,6 +6,7 @@ const SYSCALL_CLOSE: usize = 57;
 const SYSCALL_PIPE: usize = 59;
 const SYSCALL_READ: usize = 63;
 const SYSCALL_WRITE: usize = 64;
+const SYSCALL_MV: usize = 82;
 const SYSCALL_EXIT: usize = 93;
 const SYSCALL_YIELD: usize = 124;
 const SYSCALL_GET_TIME: usize = 169;
@@ -24,6 +25,7 @@ pub fn syscall(syscall_id: usize, args: [usize; 3]) -> isize {
         SYSCALL_PIPE => sys_pipe(args[0] as *mut usize),
         SYSCALL_READ => sys_read(args[0], args[1] as *const u8, args[2]),
         SYSCALL_WRITE => sys_write(args[0], args[1] as *const u8, args[2]),
+        SYSCALL_MV => sys_mv(args[0] as *const u8, args[1] as *const u8),
         SYSCALL_EXIT => sys_exit(args[0] as i32),
         SYSCALL_YIELD => sys_yield(),
         SYSCALL_GET_TIME => sys_get_time(),
@@ -37,7 +39,7 @@ pub fn syscall(syscall_id: usize, args: [usize; 3]) -> isize {
 
 use alloc::sync::Arc;
 use crate::alloc::string::ToString;
-use crate::fs::{OpenFlags, mkdir_at_root, open_bin, open_file, remove_at_root, rename_at_root, make_pipe};
+use crate::fs::{OpenFlags, mkdir_at_root, open_bin, open_file, remove_at_root, rename_at_root, make_pipe, move_at_root};
 use crate::mm::{UserBuffer, translated_byte_buffer, translated_refmut, translated_str};
 use crate::sbi::scan;
 use crate::task::*;
@@ -128,6 +130,13 @@ pub fn sys_remove(path: *const u8) -> isize {
     let token = current_user_token();
     let path = translated_str(token, path);
     if remove_at_root(path.as_str()) { 0 } else { -1 }
+}
+
+pub fn sys_mv(old_path: *const u8, new_path: *const u8) -> isize {
+    let token = current_user_token();
+    let old_path = translated_str(token, old_path);
+    let new_path = translated_str(token, new_path);
+    if move_at_root(old_path.as_str(), new_path.as_str()) { 0 } else { -1 }
 }
 
 pub fn sys_rename(path: *const u8, new_name: *const u8) -> isize {

@@ -1,14 +1,3 @@
-//! Task management implementation
-//!
-//! Everything about task management, like starting and switching tasks is
-//! implemented here.
-//!
-//! A single global instance of [`TaskManager`] called `TASK_MANAGER` controls
-//! all the tasks in the operating system.
-//!
-//! Be careful when you see `__switch` ASM function in `switch.S`. Control flow around this function
-//! might not be what you expect.
-
 mod context;
 mod switch;
 #[allow(clippy::module_inception)]
@@ -77,10 +66,8 @@ pub fn exit_current_and_run_next(exit_code: i32){
     // deallocate user space
     inner.memory_set.recycle_data_pages();
     drop(inner);
-    // **** stop exclusively accessing current PCB
     // drop task manually to maintain rc correctly
     drop(task);
-    // we do not have to save task context
     let mut _unused = TaskContext::zero_init();
     schedule(&mut _unused as *mut _);
 }

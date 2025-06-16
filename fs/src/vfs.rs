@@ -514,6 +514,92 @@ impl Inode {
         flag
     }
 
+    pub fn mv(&self, path: &str, new_path: &str) -> bool {
+        // move a file or directory in current directory, relative
+        if path.is_empty() || new_path.is_empty() {
+            return false; // invalid name
+        }
+        if path == new_path {
+            return true; // no need to move
+        }
+        let mut dst_inode = Arc::new(Self::new(
+            self.block_id as u32,
+            self.block_offset,
+            Arc::clone(&self.fs),
+            Arc::clone(&self.block_device),
+        ));
+        let dst_len = new_path.split('/').count();
+        if dst_len == 0 {
+            return false; // invalid new path
+        }
+        for (i, name) in new_path.split('/').enumerate() {
+            if name.is_empty() {
+                return false; // invalid absolute path
+            }
+            if let Some(next_inode) = dst_inode._find(name) {
+                dst_inode = next_inode;
+            } else {
+                return false; // dir not found
+            }
+        }
+        assert!(dst_inode.read_disk_inode(|disk_inode| disk_inode.is_dir()));
+        let mut cur_inode = Arc::new(Self::new(
+            self.block_id as u32,
+            self.block_offset,
+            Arc::clone(&self.fs),
+            Arc::clone(&self.block_device),
+        ));
+        let len = path.split('/').count();
+        for (i, name) in path.split('/').enumerate() {
+            if name.is_empty() {
+                return false; // invalid absolute path
+            }
+            if i == len - 1 {
+                return cur_inode._move(name, dst_inode);
+            } else {
+                if let Some(next_inode) = cur_inode._find(name) {
+                    cur_inode = next_inode;
+                } else {
+                    return false;
+                }
+            }
+        }
+        false
+    }
+
+    pub fn _move(&self, name: &str, dst_inode: Arc<Inode>) -> bool {
+        // move a file or directory to dst_inode
+        if name.is_empty() {
+            return false; // invalid name
+        }
+        let mut fs = self.fs.lock();
+        let mut inode_id = None;
+        self.modify_disk_inode(|disk_inode| {
+            // assert it is a directory
+            assert!(disk_inode.is_dir());
+            inode_id = self.remove_inode_id(name, disk_inode);
+        });
+        if let Some(inode_id) = inode_id {
+            // write the inode_id to the destination directory
+            dst_inode.modify_disk_inode(|dst_disk_inode| {
+                assert!(dst_disk_inode.is_dir());
+                let file_count = (dst_disk_inode.size as usize) / DIRENT_SZ;
+                let new_size = (file_count + 1) * DIRENT_SZ;
+                self.increase_size(new_size as u32, dst_disk_inode, &mut fs);
+                let dirent = DirEntry::new(name, inode_id);
+                dst_disk_inode.write_at(
+                    file_count * DIRENT_SZ,
+                    dirent.as_bytes(),
+                    &self.block_device,
+                );
+            });
+            block_cache_sync_all();
+            true
+        } else {
+            false
+        }
+    }
+
     /// Read data from current inode
     pub fn read_at(&self, offset: usize, buf: &mut [u8]) -> usize {
         let _fs = self.fs.lock();

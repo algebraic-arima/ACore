@@ -1,4 +1,3 @@
-//! Implementation of [`TaskContext`]
 use crate::trap::trap_return;
 
 #[repr(C)]

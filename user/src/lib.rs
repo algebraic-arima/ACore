@@ -47,6 +47,9 @@ pub fn read(fd: usize, buf: &mut [u8]) -> isize {
 pub fn write(fd: usize, buf: &[u8]) -> isize {
     sys_write(fd, buf)
 }
+pub fn mv(old_path: &str, new_path: &str) -> isize {
+    sys_mv(old_path, new_path)
+}
 pub fn mkdir(path: &str) -> isize {
     sys_mkdir(path)
 }

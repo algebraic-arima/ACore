@@ -154,6 +154,10 @@ pub fn rename_at_root(path: &str, new_name: &str) -> bool {
     ROOT_INODE.rename(path, new_name)
 }
 
+pub fn move_at_root(old_path: &str, new_path: &str) -> bool {
+    ROOT_INODE.mv(old_path, new_path)
+}
+
 impl File for OSInode {
     fn readable(&self) -> bool {
         self.readable

@@ -37,18 +37,15 @@ pub struct MemorySet {
 }
 
 impl MemorySet {
-    ///Create an empty `MemorySet`
     pub fn new_bare() -> Self {
         Self {
             page_table: PageTable::new(),
             areas: Vec::new(),
         }
     }
-    ///Get pagetable `root_ppn`
     pub fn token(&self) -> usize {
         self.page_table.token()
     }
-    /// Assume that no conflicts.
     pub fn insert_framed_area(
         &mut self,
         start_va: VirtAddr,
@@ -60,7 +57,6 @@ impl MemorySet {
             None,
         );
     }
-    ///Remove `MapArea` that starts with `start_vpn`
     pub fn remove_area_with_start_vpn(&mut self, start_vpn: VirtPageNum) {
         if let Some((idx, area)) = self
             .areas
@@ -79,7 +75,6 @@ impl MemorySet {
         }
         self.areas.push(map_area);
     }
-    /// Mention that trampoline is not collected by areas.
     fn map_trampoline(&mut self) {
         self.page_table.map(
             VirtAddr::from(TRAMPOLINE).into(),
@@ -90,7 +85,6 @@ impl MemorySet {
     /// Without kernel stacks.
     pub fn new_kernel() -> Self {
         let mut memory_set = Self::new_bare();
-        // map trampoline
         memory_set.map_trampoline();
         // map kernel sections
         println!(".text [{:#x}, {:#x})", stext as usize, etext as usize);
@@ -274,7 +268,6 @@ impl MemorySet {
         for area in user_space.areas.iter() {
             let new_area = MapArea::from_another(area);
             memory_set.push(new_area, None);
-            // copy data from another space
             for vpn in area.vpn_range {
                 let src_ppn = user_space.translate(vpn).unwrap().ppn();
                 let dst_ppn = memory_set.translate(vpn).unwrap().ppn();
@@ -285,7 +278,6 @@ impl MemorySet {
         }
         memory_set
     }
-    ///Refresh TLB with `sfence.vma`
     pub fn activate(&self) {
         let satp = self.page_table.token();
         unsafe {
@@ -293,16 +285,13 @@ impl MemorySet {
             asm!("sfence.vma");
         }
     }
-    ///Translate through pagetable
     pub fn translate(&self, vpn: VirtPageNum) -> Option<PageTableEntry> {
         self.page_table.translate(vpn)
     }
-    ///Remove all `MapArea`
     pub fn recycle_data_pages(&mut self) {
-        //*self = Self::new_bare();
         self.areas.clear();
     }
-    // expand user stack
+    // expand user stack, but not in a Map Area
     pub fn map_stack_page(&mut self, va: VirtAddr) {
         // info!("map stack page: {:#x}", va.0);
         // warn!("page table: {:?}", self.page_table);
@@ -409,7 +398,6 @@ impl MapArea {
 use lazy_static::*;
 
 lazy_static! {
-    /// a memory set instance through lazy_static! managing kernel space
     pub static ref KERNEL_SPACE: Arc<UPSafeCell<MemorySet>> =
         Arc::new(unsafe { UPSafeCell::new(MemorySet::new_kernel()) });
 }
@@ -419,7 +407,6 @@ pub fn kernel_token() -> usize {
 }
 
 #[allow(unused)]
-///Check PageTable running correctly
 pub fn remap_test() {
     let mut kernel_space = KERNEL_SPACE.exclusive_access();
     let mid_text: VirtAddr = ((stext as usize + etext as usize) / 2).into();

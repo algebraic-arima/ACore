@@ -10,7 +10,7 @@ pub struct TaskManager {
     ready_queue: VecDeque<Arc<TaskControlBlock>>,
 }
 
-/// A simple FIFO scheduler.
+// FIFO
 impl TaskManager {
     pub fn new() -> Self {
         Self { ready_queue: VecDeque::new(), }

@@ -211,6 +211,33 @@ fn fs_test() -> std::io::Result<()> {
     assert!(test_usr_inode.find("filec").is_some(), "filec should exist in /usr!");
     assert!(test_usr_inode.find("venillalemon").is_some(), "venillalemon should exist in /usr!");
 
+    println!("Testing moving usr/modist to usr/yuchuan/modist...");
+    usr_inode.mv("modist", "yuchuan");
+    for name in usr_inode.ls() {
+        println!("/usr: {}", name);
+    }
+    assert!(usr_inode.find("modist").is_none(), "modist should be moved to /usr/yuchuan/modist!");
+    assert!(usr_inode.find("yuchuan/modist").is_some(), "modist should exist in /usr/yuchuan/modist!");
+    for name in yuchuan_inode.ls() {
+        println!("/usr/yuchuan: {}", name);
+    }
+    let usr_yuchuan_modist_inode = yuchuan_inode.find("modist").unwrap();
+    root_inode.mv("usr/filec", "usr/yuchuan/modist");
+    for name in usr_yuchuan_modist_inode.ls() {
+        println!("/usr/yuchuan/modist: {}", name);
+    }
+    assert!(usr_yuchuan_modist_inode.find("filec").is_some(), "filec should exist in /usr/yuchuan/modist!");
+    assert!(usr_inode.find("filec").is_none(), "filec should be removed from /usr!");
+    root_inode.mv("usr/yuchuan/modist", "usr");
+    for name in usr_inode.ls() {
+        println!("/usr: {}", name);
+    }
+    assert!(usr_inode.find("yuchuan/modist").is_none(), "modist should be moved to /usr/modist!");
+    assert!(usr_inode.find("modist").is_some(), "modist should exist in /usr/modist!");
+    for name in usr_inode.find("modist").unwrap().ls() {
+        println!("/usr/modist: {}", name);
+    }
+
     println!("Testing writing and reading filea...");
     let filea = par_node.find("filea").unwrap();
     let greet_str = "Hello, world!";

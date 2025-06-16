@@ -8,6 +8,7 @@ const SYSCALL_CLOSE: usize = 57;
 const SYSCALL_PIPE: usize = 59;
 const SYSCALL_READ: usize = 63;
 const SYSCALL_WRITE: usize = 64;
+const SYSCALL_MV: usize = 82;
 const SYSCALL_EXIT: usize = 93;
 const SYSCALL_YIELD: usize = 124;
 const SYSCALL_GET_TIME: usize = 169;
@@ -47,6 +48,13 @@ pub fn sys_read(fd: usize, buffer: &mut [u8]) -> isize {
 
 pub fn sys_write(fd: usize, buffer: &[u8]) -> isize {
     syscall(SYSCALL_WRITE, [fd, buffer.as_ptr() as usize, buffer.len()])
+}
+
+pub fn sys_mv(old_path: &str, new_path: &str) -> isize {
+    syscall(
+        SYSCALL_MV,
+        [old_path.as_ptr() as usize, new_path.as_ptr() as usize, 0],
+    )
 }
 
 pub fn sys_mkdir(path: &str) -> isize {

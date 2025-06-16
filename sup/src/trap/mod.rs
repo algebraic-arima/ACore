@@ -18,7 +18,6 @@ use riscv::register::{
 
 global_asm!(include_str!("trap_s.S"));
 
-/// initialize CSR `stvec` as the entry of `__alltraps`
 pub fn init() {
     set_kernel_trap_entry();
 }
@@ -35,7 +34,6 @@ fn set_user_trap_entry() {
     }
 }
 
-/// enable timer interrupt in sie CSR
 pub fn enable_timer_interrupt() {
     unsafe {
         sie::set_stimer();
@@ -87,6 +85,7 @@ pub fn trap_handler() -> ! {
             exit_current_and_run_next(-3);
         }
         Trap::Interrupt(Interrupt::SupervisorSoft) => {
+            // SSI is used for machine timer interrupt
             // info!("Supervisor Timer Interrupt at {}", time::read());
             // set_next_trigger();
             unsafe {
@@ -132,7 +131,6 @@ pub fn trap_return() -> ! {
     }
 }
 #[unsafe(no_mangle)]
-/// Unimplement: traps/interrupts/exceptions from kernel mode
 /// Todo: Chapter 9: I/O device
 pub fn trap_from_kernel() -> ! {
     let c = scause::read().cause();

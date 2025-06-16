@@ -167,7 +167,7 @@ pub fn translated_byte_buffer(token: usize, ptr: *const u8, len: usize) -> Vec<&
     v
 }
 
-/// translate a pointer to a mutable u8 Vec end with `\0` through page table to a `String`
+/// end with `\0` !!!
 pub fn translated_str(token: usize, ptr: *const u8) -> String {
     let mut page_table = PageTable::from_token(token);
     let mut string = String::new();
@@ -187,7 +187,6 @@ pub fn translated_str(token: usize, ptr: *const u8) -> String {
     string
 }
 
-///translate a generic through page table and return a mutable reference
 pub fn translated_refmut<T>(token: usize, ptr: *mut T) -> &'static mut T {
     //println!("into translated_refmut!");
     let mut page_table = PageTable::from_token(token);
@@ -209,7 +208,6 @@ impl UserBuffer {
     pub fn new(buffers: Vec<&'static mut [u8]>) -> Self {
         Self { buffers }
     }
-    ///Length of `UserBuffer`
     pub fn len(&self) -> usize {
         let mut total: usize = 0;
         for b in self.buffers.iter() {
@@ -254,8 +252,6 @@ impl Iterator for UserBufferIterator {
         }
     }
 }
-
-
 
 
 use core::fmt::{self, Debug};
